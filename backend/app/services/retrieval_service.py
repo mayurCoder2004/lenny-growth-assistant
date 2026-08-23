@@ -1,9 +1,8 @@
-from typing import Any
+﻿from typing import Any
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.models import TranscriptChunk
 from app.services.embedding_service import generate_embedding
 
 
@@ -11,16 +10,27 @@ def search_similar_chunks(
     db: Session,
     query: str,
     limit: int = 5,
+    candidate_limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
-    Find transcript chunks that are semantically similar
-    to the user's query.
+    Retrieve transcript chunks using pgvector cosine similarity.
 
-    Uses pgvector cosine distance.
+    Strategy:
+    1. Retrieve a larger candidate pool.
+    2. Rank candidates by cosine distance.
+    3. Return the strongest candidates.
+
+    Lower cosine distance = higher similarity.
     """
 
-    if not query.strip():
+    if not query or not query.strip():
         return []
+
+    if limit <= 0:
+        return []
+
+    if candidate_limit < limit:
+        candidate_limit = limit
 
     query_embedding = generate_embedding(query)
 
@@ -44,8 +54,9 @@ def search_similar_chunks(
         FROM transcript_chunks tc
         JOIN sources s
             ON s.id = tc.source_id
+        WHERE tc.embedding IS NOT NULL
         ORDER BY tc.embedding <=> CAST(:embedding AS vector)
-        LIMIT :limit
+        LIMIT :candidate_limit
         """
     )
 
@@ -53,14 +64,14 @@ def search_similar_chunks(
         sql,
         {
             "embedding": embedding_text,
-            "limit": limit,
+            "candidate_limit": candidate_limit,
         },
     ).mappings().all()
 
-    results: list[dict[str, Any]] = []
+    candidates: list[dict[str, Any]] = []
 
     for row in rows:
-        results.append(
+        candidates.append(
             {
                 "id": str(row["id"]),
                 "source_id": str(row["source_id"]),
@@ -74,4 +85,9 @@ def search_similar_chunks(
             }
         )
 
-    return results
+    if not candidates:
+        return []
+
+    # The SQL query already sorts by cosine distance.
+    # Lower distance means stronger semantic similarity.
+    return candidates[:limit]

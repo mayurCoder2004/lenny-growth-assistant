@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+﻿from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -122,8 +122,8 @@ def clean_transcript(
 
 def chunk_transcript(
     transcript: str,
-    chunk_size: int = 1200,
-    overlap: int = 200,
+    chunk_size: int = 500,
+    overlap: int = 100,
 ) -> list[str]:
     """
     Split transcript into overlapping word-based chunks.

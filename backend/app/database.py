@@ -1,20 +1,9 @@
 from collections.abc import Generator
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
-
-class Settings(BaseSettings):
-    database_url: str
-
-    model_config = SettingsConfigDict(
-        env_file="../.env",
-        extra="ignore",
-    )
-
-
-settings = Settings()
+from app.config import settings
 
 
 database_url = settings.database_url.replace(

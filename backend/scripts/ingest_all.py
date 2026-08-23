@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 
 from app.database import SessionLocal
 from app.services.ingestion_service import (
@@ -9,6 +10,8 @@ from app.models import Source
 
 
 def main() -> None:
+    force = "--force" in sys.argv
+
     project_root = Path(__file__).resolve().parents[2]
 
     transcripts_root = (
@@ -30,6 +33,10 @@ def main() -> None:
         return
 
     print(f"Found {total} transcripts.")
+
+    if force:
+        print("FORCE MODE: existing transcripts will be re-ingested.")
+
     print()
 
     db = SessionLocal()
@@ -55,8 +62,7 @@ def main() -> None:
                     existing = (
                         db.query(Source)
                         .filter(
-                            Source.url
-                            == parsed.youtube_url
+                            Source.url == parsed.youtube_url
                         )
                         .first()
                     )
@@ -65,13 +71,12 @@ def main() -> None:
                     existing = (
                         db.query(Source)
                         .filter(
-                            Source.title
-                            == parsed.title
+                            Source.title == parsed.title
                         )
                         .first()
                     )
 
-                if existing is not None:
+                if existing is not None and not force:
                     skipped += 1
 
                     print(
