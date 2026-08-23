@@ -152,3 +152,275 @@ Verified:
 - Message persistence
 - Message retrieval
 - Session isolation
+
+
+
+---
+
+## Phase 2: Transcript Ingestion and Semantic Retrieval
+
+### 1. Transcript dataset integration
+
+**Problem**
+
+The application needed a knowledge base containing Lenny's Podcast transcripts
+that could be searched when answering user questions.
+
+**Implementation**
+
+The Lenny transcript dataset was added under:
+
+`data/source-transcripts/`
+
+The dataset contained 303 transcript entries.
+
+The transcript files were kept out of Git using `.gitignore` because the raw
+transcript dataset is local application data rather than source code.
+
+**Result**
+
+The ingestion pipeline successfully discovered all 303 transcript files.
+
+---
+
+### 2. Transcript parsing and chunking
+
+**Implementation**
+
+Created:
+
+`backend/app/services/ingestion_service.py`
+
+The ingestion service:
+
+- Reads transcript Markdown files
+- Extracts transcript metadata
+- Extracts guest information
+- Extracts title information
+- Extracts publication dates
+- Splits transcripts into searchable chunks
+- Generates embeddings for the chunks
+- Stores the source and chunks in PostgreSQL
+
+A test transcript contained:
+
+- 86,086 characters
+- 15,807 words
+- 16 chunks
+
+**Result**
+
+Transcript parsing and chunking were successfully verified.
+
+---
+
+### 3. Embedding generation
+
+**Problem**
+
+Semantic retrieval requires numerical vector representations of transcript
+chunks.
+
+**Implementation**
+
+Added:
+
+`backend/app/services/embedding_service.py`
+
+The project uses:
+
+`sentence-transformers/all-MiniLM-L6-v2`
+
+The model generates embeddings with:
+
+`384 dimensions`
+
+**Verification**
+
+The embedding service was tested with:
+
+`How can I improve product retention?`
+
+The generated embedding successfully returned a vector with 384 dimensions.
+
+**Result**
+
+Embedding generation is working successfully.
+
+---
+
+### 4. Hugging Face model download
+
+**Problem**
+
+The first embedding test required downloading the
+`all-MiniLM-L6-v2` model from Hugging Face.
+
+**Observation**
+
+Hugging Face displayed a warning about unauthenticated requests:
+
+`You are sending unauthenticated requests to the HF Hub.`
+
+This did not prevent the model from downloading or being used.
+
+**Result**
+
+The model was downloaded successfully and cached locally.
+
+The embedding test completed successfully.
+
+---
+
+### 5. Semantic retrieval
+
+**Implementation**
+
+Created:
+
+`backend/app/services/retrieval_service.py`
+
+The retrieval service:
+
+1. Converts a user query into an embedding.
+2. Compares the query embedding against stored transcript embeddings.
+3. Uses vector similarity to find relevant transcript chunks.
+4. Returns the most relevant chunks.
+
+**Test query**
+
+`How should I think about leaving my job?`
+
+**Result**
+
+The retrieval system returned 5 relevant chunks from Ada Chen Rekhi's
+episode.
+
+The highest-ranked result was directly related to the question and discussed
+feeling trapped in a job, career alignment, meaningfulness, and deciding
+whether to leave.
+
+Semantic retrieval was successfully verified.
+
+---
+
+### 6. Single transcript ingestion
+
+Created:
+
+`backend/scripts/ingest_one.py`
+
+The script was used to verify the complete ingestion pipeline with a single
+transcript.
+
+**Result**
+
+The Ada Chen Rekhi transcript was successfully ingested:
+
+- Source ID generated successfully
+- Guest metadata stored
+- Transcript chunks stored
+- 16 chunks generated
+- Embeddings generated successfully
+
+Database verification:
+
+- Sources: 1
+- Chunks: 16
+
+---
+
+### 7. Bulk transcript ingestion
+
+Created:
+
+`backend/scripts/ingest_all.py`
+
+The bulk ingestion script processes all available transcript files while
+skipping transcripts that have already been ingested.
+
+**Result**
+
+303 transcripts were processed.
+
+Final ingestion summary:
+
+- Total transcripts: 303
+- Successful: 271
+- Skipped: 32
+- Failed: 0
+- New chunks: 4,230
+
+The skipped transcripts were already present or otherwise handled by the
+duplicate/ingestion logic.
+
+---
+
+### 8. Database verification after bulk ingestion
+
+After bulk ingestion, PostgreSQL was queried directly to verify persistence.
+
+**Result**
+
+- Sources: 272
+- Transcript chunks: 4,246
+- Failed ingestions: 0
+
+The additional records include the previously ingested Ada Chen Rekhi
+transcript and the successfully processed bulk dataset.
+
+---
+
+### 9. Duplicate ingestion handling
+
+During bulk ingestion, several transcript entries were reported as:
+
+`SKIPPED`
+
+This confirmed that the ingestion pipeline does not blindly create duplicate
+records when a transcript has already been processed.
+
+Examples included duplicate or alternate transcript entries such as:
+
+- Andy Raskin
+- Elena Verna
+- Julie Zhuo
+- Dylan Field
+- Uri Levine
+- Wes Kao
+
+**Result**
+
+The ingestion pipeline can safely be rerun without unnecessarily duplicating
+already-ingested sources.
+
+---
+
+### Phase 2 result
+
+The knowledge ingestion and semantic retrieval foundation is complete.
+
+Verified:
+
+- 303 transcript files discovered
+- Transcript metadata extraction
+- Transcript parsing
+- Transcript chunking
+- Sentence Transformer embeddings
+- 384-dimensional embeddings
+- PostgreSQL vector storage
+- Bulk ingestion
+- Duplicate handling
+- Semantic similarity search
+- Retrieval of relevant transcript chunks
+- 272 sources stored
+- 4,246 transcript chunks stored
+- 0 failed bulk ingestions
+
+**Git commit**
+
+`b0ac177`
+
+`feat: add transcript ingestion and semantic retrieval`
+
+The Phase 2 implementation was pushed successfully to the GitHub repository.
