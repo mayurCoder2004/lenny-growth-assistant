@@ -47,6 +47,8 @@ def test_chat_service_dispatches_ship30():
 
     assert result["answer"] == "Ship30 plan generated."
 
+    assert result["plan"] == PLAN
+
     assert result["sources"] == [
         {
             "evidence_id": "source-1-21",
@@ -74,13 +76,18 @@ def test_chat_service_defaults_to_chat():
         return_value=FakeSession(),
     ), patch(
         "app.services.chat_service.add_message",
-    ), patch(
-        "app.services.chat_service.answer_question",
-        return_value={
+    ) as add_message_mock, patch(
+        "app.services.chat_service.AgentDispatcher",
+    ) as dispatcher_class:
+
+        dispatcher = dispatcher_class.return_value
+
+        dispatcher.dispatch.return_value = {
+            "agent": "chat",
             "answer": "Normal chat answer.",
             "sources": [],
-        },
-    ) as rag_mock:
+            "plan": None,
+        }
 
         result = process_chat(
             db=db,
@@ -90,14 +97,20 @@ def test_chat_service_defaults_to_chat():
 
     assert result["answer"] == "Normal chat answer."
 
-    rag_mock.assert_called_once_with(
+    assert result["plan"] is None
+
+    assert result["sources"] == []
+
+    dispatcher.dispatch.assert_called_once_with(
         db=db,
-        question="What is product-market fit?",
-        top_k=5,
-        distance_threshold=0.70,
+        agent_name="chat",
+        message="What is product-market fit?",
+        session_id=session_id,
     )
 
-    print("CHAT DEFAULT ? RAG: PASSED")
+    assert add_message_mock.call_count == 2
+
+    print("CHAT DEFAULT ? CHAT AGENT DISPATCH: PASSED")
 
 
 if __name__ == "__main__":

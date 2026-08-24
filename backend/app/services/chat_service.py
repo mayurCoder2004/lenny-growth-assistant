@@ -6,7 +6,6 @@ from app.agents.dispatcher import (
     AgentDispatcher,
     AgentDispatcherError,
 )
-from app.services.rag_service import answer_question
 from app.services.session_service import add_message, get_session
 
 
@@ -21,15 +20,17 @@ def process_chat(
     agent: str = "chat",
 ) -> dict:
     """
-    Process a chat message.
+    Process a chat message through the application agent layer.
 
     Supported agents:
 
         chat
+            -> ChatAgent
             -> Existing grounded RAG pipeline
 
         ship30
-            -> Ship30 agent pipeline
+            -> Ship30Agent
+            -> Grounded Ship30 planning pipeline
     """
 
     if not message or not message.strip():
@@ -65,23 +66,14 @@ def process_chat(
     )
 
     try:
-        if agent == "chat":
-            result = answer_question(
-                db=db,
-                question=message,
-                top_k=5,
-                distance_threshold=0.70,
-            )
+        dispatcher = AgentDispatcher()
 
-        else:
-            dispatcher = AgentDispatcher()
-
-            result = dispatcher.dispatch(
-                db=db,
-                agent_name=agent,
-                message=message,
-                session_id=session_id,
-            )
+        result = dispatcher.dispatch(
+            db=db,
+            agent_name=agent,
+            message=message,
+            session_id=session_id,
+        )
 
     except AgentDispatcherError as exc:
         raise ChatServiceError(
@@ -123,5 +115,8 @@ def process_chat(
         "sources": result.get(
             "sources",
             [],
+        ),
+        "plan": result.get(
+            "plan",
         ),
     }

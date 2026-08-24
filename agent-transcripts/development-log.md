@@ -1263,3 +1263,133 @@ Result:
 
 `PHASE 6 COMPLETE`
 
+
+---
+
+### 16. Agent architecture refinement
+
+The Phase 6 chat architecture was refined so that both the default RAG chat flow and the Ship30 planning flow are represented as application agents.
+
+Created:
+
+`backend/app/agents/chat_agent.py`
+
+The `ChatAgent` provides an agent interface around the existing grounded RAG pipeline.
+
+Updated:
+
+`backend/app/agents/router.py`
+
+The router now resolves both supported agents:
+
+`chat` -> `ChatAgent`
+
+`ship30` -> `Ship30Agent`
+
+Updated:
+
+`backend/app/services/chat_service.py`
+
+The chat service now delegates all agent execution through:
+
+`ChatService`
+-> `AgentDispatcher`
+-> `AgentRouter`
+-> Selected Agent
+
+The default agent remains:
+
+`agent="chat"`
+
+This preserves backward compatibility while allowing additional agents to be added without placing agent-specific logic directly inside the chat service.
+
+Updated:
+
+`backend/scripts/test_dispatcher.py`
+
+The dispatcher tests now verify:
+
+- Chat agent resolution
+- Ship30 agent resolution
+- Case-insensitive routing
+- Unknown agent rejection
+- Chat agent dispatch
+- Ship30 agent dispatch
+- Empty agent rejection
+- Dispatcher error handling
+
+Updated:
+
+`backend/scripts/test_chat_agent_integration.py`
+
+The integration tests now verify:
+
+- `agent="ship30"` dispatches to the Ship30 agent
+- Default chat requests dispatch to the Chat agent
+- Chat responses preserve plans and sources
+- User and assistant messages continue to be persisted
+
+### 17. Final architecture verification
+
+The complete Phase 6 regression suite was executed after the agent architecture refinement.
+
+Verified:
+
+- Python compilation
+- Chat agent integration
+- Ship30 agent integration
+- Chat routing
+- Ship30 routing
+- Case-insensitive routing
+- Agent dispatcher
+- Grounding logic
+- Ship30 schemas
+- Ship30 generation
+- Plan validation
+- Ship30 generation and grounding integration
+- Ship30 service orchestration
+- Ship30 API schema
+- Ship30 agent execution
+
+All tests passed successfully.
+
+Final verification results:
+
+`ALL CHAT SERVICE AGENT INTEGRATION TESTS PASSED`
+
+`ALL ROUTER + DISPATCHER TESTS PASSED`
+
+`GROUNDING TEST PASSED`
+
+`SHIP30 SCHEMA TEST PASSED`
+
+`ALL GENERATION TESTS PASSED`
+
+`ALL PLAN VALIDATION TESTS PASSED`
+
+`INTEGRATION TEST PASSED`
+
+`ALL SHIP30 SERVICE TESTS PASSED`
+
+`SHIP30 API SCHEMA TEST PASSED`
+
+`ALL SHIP30 AGENT TESTS PASSED`
+
+### Phase 6 final result
+
+Phase 6 is complete with an agent-based conversation architecture.
+
+The final flow is:
+
+`Chat API`
+-> `ChatService`
+-> `AgentDispatcher`
+-> `AgentRouter`
+-> `ChatAgent` or `Ship30Agent`
+
+The architecture preserves the existing grounded RAG chat behavior while providing a clean extension point for additional agents.
+
+Result:
+
+`PHASE 6 COMPLETE`
+
