@@ -2529,3 +2529,262 @@ Result:
 
 `PHASE 10 COMPLETE`
 
+
+# Phase 11: Security
+
+### 1. HTML sanitization dependency
+
+Added the `nh3` HTML sanitization library to the backend environment.
+
+Updated:
+
+`backend/requirements.txt`
+
+Added:
+
+`nh3==0.3.7`
+
+This provides server-side sanitization for generated artifact HTML before persistence.
+
+---
+
+### 2. Artifact HTML sanitizer
+
+Created:
+
+`backend/app/services/html_sanitizer.py`
+
+Implemented `sanitize_html()` using `nh3`.
+
+The sanitizer allows only the HTML elements required for artifact rendering:
+
+- paragraphs
+- headings
+- bold and italic text
+- blockquotes
+- ordered and unordered lists
+- list items
+- code blocks
+- links
+
+Allowed link attributes are restricted to:
+
+- `href`
+- `title`
+
+Allowed URL schemes are:
+
+- `http`
+- `https`
+- `mailto`
+
+Dangerous HTML and event-handler attributes are removed.
+
+---
+
+### 3. Sanitizer verification
+
+Created:
+
+`backend/scripts/test_html_sanitizer.py`
+
+Verified sanitization against malicious HTML including:
+
+- `<script>` injection
+- `<img>` with `onerror`
+- `javascript:` links
+- inline event handlers such as `onclick`
+
+The sanitizer successfully removed unsafe content while preserving valid HTML.
+
+---
+
+### 4. Artifact persistence sanitization
+
+Updated:
+
+`backend/app/services/artifact_service.py`
+
+Artifact creation now sanitizes content before persistence.
+
+The flow is:
+
+`Generated Artifact`
+
+-> `sanitize_html()`
+
+-> `Validate Sanitized Content`
+
+-> `Persist to PostgreSQL`
+
+This ensures unsafe HTML cannot be persisted through the artifact creation service.
+
+The service also rejects content that becomes empty after sanitization.
+
+---
+
+### 5. Artifact sanitization persistence test
+
+Created:
+
+`backend/scripts/test_artifact_sanitization.py`
+
+Verified that malicious artifact content cannot be persisted in its original unsafe form.
+
+Verified that:
+
+- `<script>` is removed
+- `<img>` is removed
+- `onerror` is removed
+- `onclick` is removed
+- `javascript:` URLs are removed
+- valid headings remain
+- valid paragraphs remain
+- safe HTTPS links remain
+
+Result:
+
+`ARTIFACT PERSISTENCE SANITIZATION TEST PASSED`
+
+---
+
+### 6. Real PostgreSQL security verification
+
+Created:
+
+`backend/scripts/test_phase11_artifact_postgres.py`
+
+Executed the sanitization pipeline against the real PostgreSQL database.
+
+The test:
+
+1. Creates a temporary test user.
+2. Creates a temporary session.
+3. Generates malicious artifact HTML.
+4. Persists the artifact through `create_artifact()`.
+5. Reads the artifact back from PostgreSQL.
+6. Verifies that unsafe HTML was removed.
+7. Verifies that safe HTML remained.
+8. Cleans up the temporary test data.
+
+Result:
+
+`REAL POSTGRESQL ARTIFACT SANITIZATION TEST PASSED`
+
+Temporary test data was successfully cleaned up.
+
+---
+
+### 7. Frontend artifact rendering security
+
+Updated:
+
+`frontend/src/components/artifacts/ArtifactViewer.jsx`
+
+Artifact content is rendered as sanitized HTML from the backend rather than passing Markdown through the artifact viewer.
+
+The previous `react-markdown` dependency was temporarily removed while updating the artifact renderer, then restored because it remains required by:
+
+`frontend/src/components/chat/ChatMessage.jsx`
+
+The artifact viewer now uses the sanitized backend HTML through `dangerouslySetInnerHTML`.
+
+The security boundary is therefore:
+
+`Generated Content`
+
+-> `Backend Sanitization`
+
+-> `Persisted Sanitized HTML`
+
+-> `Artifact API`
+
+-> `Frontend Artifact Viewer`
+
+---
+
+### 8. Frontend dependency verification
+
+Verified that `react-markdown` remains required by the chat message renderer.
+
+Restored:
+
+`react-markdown`
+
+to:
+
+`frontend/package.json`
+
+Frontend production build completed successfully.
+
+Result:
+
+`? built successfully`
+
+---
+
+### 9. Existing artifact and chat regression tests
+
+Verified the existing artifact functionality after the security changes.
+
+Passed:
+
+- Artifact service tests
+- Chat-to-artifact persistence tests
+- Artifact API tests
+- End-to-end artifact tests
+- Artifact sanitization tests
+- Real PostgreSQL artifact sanitization test
+
+The chat artifact persistence test initially required its fake database/session fixtures to match the current `chat_service` behavior. The test fixture was updated to support:
+
+- SQLAlchemy `scalars()`
+- session title access
+- SQLAlchemy `get()`
+
+After the fixture correction, all tests passed.
+
+---
+
+### 10. Final Phase 11 verification
+
+Backend verification:
+
+`python -m compileall app`
+
+Completed successfully.
+
+Frontend verification:
+
+`npm run build`
+
+Completed successfully.
+
+Security verification confirmed that malicious artifact HTML is sanitized before PostgreSQL persistence and that valid artifact markup remains available for rendering.
+
+---
+
+### Phase 11 result
+
+Phase 11 successfully added server-side artifact HTML sanitization and verified the security boundary from artifact generation through PostgreSQL persistence and frontend rendering.
+
+Implemented and verified:
+
+- `nh3` dependency
+- HTML sanitizer
+- Safe HTML allowlist
+- URL scheme restrictions
+- Artifact persistence sanitization
+- Sanitization unit test
+- Real PostgreSQL sanitization test
+- Frontend artifact rendering update
+- Existing artifact regression tests
+- Chat artifact persistence regression tests
+- Artifact API tests
+- Backend compilation
+- Frontend production build
+
+Result:
+
+`PHASE 11 COMPLETE`
+

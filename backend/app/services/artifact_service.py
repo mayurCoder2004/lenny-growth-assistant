@@ -3,6 +3,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.models import Artifact
+from app.services.html_sanitizer import sanitize_html
 
 
 class ArtifactServiceError(Exception):
@@ -42,12 +43,19 @@ def create_artifact(
             "Artifact content cannot be empty."
         )
 
+    sanitized_content = sanitize_html(content)
+
+    if not sanitized_content.strip():
+        raise ArtifactServiceError(
+            "Artifact content is empty after sanitization."
+        )
+
     artifact = Artifact(
         session_id=session_id,
         message_id=message_id,
         type=artifact_type.strip(),
         title=title.strip(),
-        content=content.strip(),
+        content=sanitized_content.strip(),
     )
 
     db.add(artifact)

@@ -6,8 +6,13 @@ from app.services.chat_service import process_chat
 
 
 class FakeSession:
-    def __init__(self, session_id):
+    def __init__(
+        self,
+        session_id,
+        title="New Chat",
+    ):
         self.id = session_id
+        self.title = title
 
 
 class FakeMessage:
@@ -16,6 +21,11 @@ class FakeMessage:
         self.session_id = session_id
         self.role = role
         self.content = content
+
+
+class FakeScalarResult:
+    def all(self):
+        return []
 
 
 class FakeDB:
@@ -35,6 +45,20 @@ class FakeDB:
 
     def refresh(self, value):
         pass
+
+    def get(self, model, object_id):
+        if model.__name__ == "Session":
+            return None
+
+        if model is Artifact:
+            for artifact in self.artifacts:
+                if artifact.id == object_id:
+                    return artifact
+
+        return None
+
+    def scalars(self, statement):
+        return FakeScalarResult()
 
 
 def test_artifact_chat_persistence():
@@ -192,3 +216,4 @@ if __name__ == "__main__":
 
     print()
     print("ALL PHASE 9 CHAT ARTIFACT PERSISTENCE TESTS PASSED")
+

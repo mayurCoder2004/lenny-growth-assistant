@@ -1,0 +1,31 @@
+class FakeDB:
+    def __init__(self):
+        self.messages = []
+        self.artifacts = []
+
+    def add(self, value):
+        if isinstance(value, Message):
+            self.messages.append(value)
+
+        if isinstance(value, Artifact):
+            self.artifacts.append(value)
+
+    def commit(self):
+        pass
+
+    def refresh(self, value):
+        pass
+
+    def get(self, model, object_id):
+        if model.__name__ == "Session":
+            return None
+
+        if model is Artifact:
+            for artifact in self.artifacts:
+                if artifact.id == object_id:
+                    return artifact
+
+        return None
+
+    def scalars(self, statement):
+        return FakeScalarResult()
