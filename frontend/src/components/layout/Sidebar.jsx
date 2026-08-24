@@ -5,10 +5,12 @@ function Sidebar({
   activeConversationId,
   onSelectConversation,
   onNewConversation,
+  onDeleteConversation,
   loading,
 }) {
   return (
-    <aside className="border-r border-[#1c2330] bg-[#0d121b] p-3.5">
+    <aside className="min-h-0 overflow-y-auto border-r border-[#1c2330] bg-[#0d121b] p-3.5">
+
       <div className="mb-3.5 flex items-center justify-between px-2">
         <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8c97a9]">
           Conversations
@@ -17,8 +19,7 @@ function Sidebar({
         <button
           type="button"
           onClick={onNewConversation}
-          disabled={loading}
-          className="grid h-[26px] w-[26px] place-items-center rounded-md bg-[#171e29] text-[#aeb8c8] transition hover:bg-[#202938] disabled:cursor-not-allowed disabled:opacity-40"
+          className="grid h-[26px] w-[26px] place-items-center rounded-md bg-[#171e29] text-[#aeb8c8] transition hover:bg-[#202938]"
           aria-label="New conversation"
         >
           +
@@ -38,8 +39,10 @@ function Sidebar({
           conversations={conversations}
           activeConversationId={activeConversationId}
           onSelect={onSelectConversation}
+          onDelete={onDeleteConversation}
         />
       )}
+
     </aside>
   );
 }

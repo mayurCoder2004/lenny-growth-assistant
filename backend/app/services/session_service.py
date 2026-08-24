@@ -87,6 +87,21 @@ def add_message(
     return message
 
 
+def delete_session(
+    db: Session,
+    session_id: UUID,
+) -> bool:
+    session = db.get(ChatSession, session_id)
+
+    if session is None:
+        return False
+
+    db.delete(session)
+    db.commit()
+
+    return True
+
+
 def get_messages(
     db: Session,
     session_id: UUID,

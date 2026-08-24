@@ -60,3 +60,20 @@ export async function createSession({
 
   return response.json();
 }
+
+export async function deleteSession(sessionId) {
+  const response = await fetch(
+    `${API_BASE_URL}/sessions/${sessionId}`,
+    {
+      method: "DELETE",
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+
+    throw new Error(
+      `Failed to delete session (${response.status}): ${errorText}`
+    );
+  }
+}

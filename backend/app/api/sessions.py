@@ -13,6 +13,7 @@ from app.schemas.sessions import (
 from app.services.session_service import (
     add_message,
     create_session,
+    delete_session,
     get_messages,
     get_session,
     get_sessions,
@@ -70,6 +71,28 @@ def list_user_sessions(
         db=db,
         user_id=user_id,
     )
+
+
+@router.delete(
+    "/{session_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_chat_session(
+    session_id: UUID,
+    db: Session = Depends(get_db),
+):
+    deleted = delete_session(
+        db=db,
+        session_id=session_id,
+    )
+
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found",
+        )
+
+    return None
 
 
 @router.get(
