@@ -1542,3 +1542,318 @@ Result:
 
 `PHASE 7 COMPLETE`
 
+
+---
+
+## Phase 8: Artifact Writing Skill
+
+### 1. Ship30 writing skill
+
+The artifact generation layer was extended by introducing a dedicated
+Ship30 writing skill.
+
+Created:
+
+`backend/app/skills/__init__.py`
+
+`backend/app/skills/ship30_skill.py`
+
+The `Ship30Skill` transforms selected transcript evidence into a
+Ship30-style written essay.
+
+The skill does not perform retrieval or evidence selection.
+
+The responsibility boundary is:
+
+Retrieval -> Grounding -> Ship30Skill -> Written Artifact
+
+The skill receives:
+
+- User question
+- Selected `Evidence` objects
+
+The skill returns:
+
+- Generated essay content
+- Supporting evidence IDs
+
+### 2. Grounded essay generation
+
+The Ship30 writing prompt requires:
+
+- A strong, specific hook
+- One central idea
+- Clear narrative progression
+- Short, readable paragraphs
+- Headings when useful
+- Selective bold emphasis
+- Evidence-supported examples
+- A practical takeaway
+- Approximately 1,250 words
+
+The skill explicitly prevents:
+
+- Invented facts
+- Invented examples
+- Invented statistics
+- Fabricated quotations
+- Outside knowledge
+- Unsupported recommendations
+- Evidence IDs appearing in the essay
+
+If the supplied evidence is insufficient, the skill is instructed to state
+that clearly instead of inventing material.
+
+### 3. Ship30 skill error handling
+
+Created:
+
+`Ship30SkillError`
+
+The skill validates:
+
+- Non-empty questions
+- Presence of evidence
+
+The skill also handles:
+
+- LLM failures
+- Empty LLM responses
+
+### 4. Ship30 skill verification
+
+Created:
+
+`backend/scripts/test_ship30_skill.py`
+
+Verified:
+
+- Essay generation
+- Evidence ID preservation
+- Prompt construction
+- Empty question rejection
+- Missing evidence rejection
+- Empty LLM response rejection
+- LLM failure handling
+- Grounding rules
+- Ship30 writing requirements
+
+Result:
+
+`ALL PHASE 8 SHIP30 SKILL TESTS PASSED`
+
+### 5. Ship30 skill orchestration service
+
+Created:
+
+`backend/app/services/ship30_skill_service.py`
+
+The service connects retrieval, grounding, and the Ship30 writing skill.
+
+Flow:
+
+User Question
+
+-> Semantic Retrieval
+
+-> Evidence Grounding
+
+-> Ship30Skill
+
+-> Ship30Essay
+
+Configured defaults:
+
+- Candidate limit: 20
+- Maximum evidence: 5
+- Distance threshold: 0.60
+
+The service rejects requests when:
+
+- The question is empty
+- No database session is supplied
+- No retrieval candidates are found
+- No sufficiently relevant evidence is found
+
+### 6. Ship30 skill service verification
+
+Created:
+
+`backend/scripts/test_ship30_skill_service.py`
+
+Verified:
+
+- Full orchestration
+- No retrieval candidates
+- No grounded evidence
+- Empty question handling
+- Database requirement
+- Skill error handling
+
+Result:
+
+`ALL PHASE 8 SHIP30 SKILL SERVICE TESTS PASSED`
+
+### 7. Artifact agent implementation
+
+The previously routing-only `ArtifactAgent` was upgraded to execute the
+grounded Ship30 writing pipeline.
+
+Updated:
+
+`backend/app/agents/artifact_agent.py`
+
+The flow is:
+
+`ArtifactAgent`
+
+-> `Ship30SkillService`
+
+-> Retrieval
+
+-> Grounding
+
+-> `Ship30Skill`
+
+-> `Ship30Essay`
+
+The agent now returns:
+
+- Generated essay
+- Supporting evidence IDs
+- Agent name
+- Plan field
+
+The existing `query` alias remains supported.
+
+### 8. Artifact agent verification
+
+Created:
+
+`backend/scripts/test_artifact_agent_phase8.py`
+
+Verified:
+
+- Artifact essay generation
+- Query alias behavior
+- Empty message handling
+- Database requirement
+- Skill service error handling
+
+Result:
+
+`ALL PHASE 8 ARTIFACT AGENT TESTS PASSED`
+
+### 9. Chat-to-artifact integration
+
+Updated:
+
+`backend/scripts/test_chat_agent_integration.py`
+
+Verified:
+
+- Artifact requests are dispatched through the agent dispatcher
+- Generated artifact content is returned
+- Evidence IDs are preserved
+- Database session is passed correctly
+- User and assistant message persistence remains intact
+
+Result:
+
+`CHAT SERVICE -> ARTIFACT ESSAY DISPATCH: PASSED`
+
+### 10. Regression verification
+
+The complete backend regression suite was executed after implementing
+the Phase 8 artifact writing skill.
+
+Verified:
+
+- Python compilation
+- Ship30 writing skill
+- Ship30 skill service
+- Artifact agent
+- Chat service agent integration
+- Artifact routing
+- Agent dispatcher
+- Grounding logic
+- Ship30 schemas
+- Ship30 generation
+- Plan validation
+- Ship30 generation and grounding integration
+- Ship30 service orchestration
+- Ship30 API schema
+- Ship30 agent
+
+All tests passed successfully.
+
+Final verification included:
+
+`ALL PHASE 8 SHIP30 SKILL TESTS PASSED`
+
+`ALL PHASE 8 SHIP30 SKILL SERVICE TESTS PASSED`
+
+`ALL PHASE 8 ARTIFACT AGENT TESTS PASSED`
+
+`ALL PHASE 7 CHAT SERVICE AGENT INTEGRATION TESTS PASSED`
+
+`ALL PHASE 7 ARTIFACT AGENT TESTS PASSED`
+
+`ALL ROUTER + DISPATCHER TESTS PASSED`
+
+`GROUNDING TEST PASSED`
+
+`SHIP30 SCHEMA TEST PASSED`
+
+`ALL GENERATION TESTS PASSED`
+
+`ALL PLAN VALIDATION TESTS PASSED`
+
+`INTEGRATION TEST PASSED`
+
+`ALL SHIP30 SERVICE TESTS PASSED`
+
+`SHIP30 API SCHEMA TEST PASSED`
+
+`ALL SHIP30 AGENT TESTS PASSED`
+
+### Phase 8 result
+
+The artifact agent is now connected to a grounded Ship30 writing pipeline.
+
+The final artifact flow is:
+
+`Chat API`
+
+-> `ChatService`
+
+-> `AgentDispatcher`
+
+-> `AgentRouter`
+
+-> `ArtifactAgent`
+
+-> `Ship30SkillService`
+
+-> Retrieval
+
+-> Grounding
+
+-> `Ship30Skill`
+
+-> `Ship30Essay`
+
+The Phase 8 implementation was committed and pushed successfully.
+
+Git commit:
+
+`5d52fcb`
+
+`feat: complete phase 8 artifact writing skill`
+
+The working tree was clean after the commit and push.
+
+Result:
+
+`PHASE 8 COMPLETE`
+
