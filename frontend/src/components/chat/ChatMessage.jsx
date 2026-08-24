@@ -12,18 +12,18 @@ function ChatMessage({ role, content }) {
     >
       <div
         className={[
-          "max-w-[760px] rounded-xl px-4 py-3 text-sm leading-7",
+          "max-w-[min(780px,100%)] rounded-xl px-4 py-3 text-sm leading-7 shadow-[0_10px_30px_rgba(0,0,0,0.14)] sm:px-5 sm:py-4",
           isUser
-            ? "bg-[#171e29] text-[#dce2eb]"
-            : "bg-[#10151e] text-[#b9c2d0]",
+            ? "border border-[#27303e] bg-[#171e29] text-[#dce2eb]"
+            : "border border-[#202938] bg-[#10151e] text-[#b9c2d0]",
         ].join(" ")}
       >
         {isUser ? (
-          <p className="whitespace-pre-wrap">
+          <p className="whitespace-pre-wrap leading-7">
             {content}
           </p>
         ) : (
-          <div className="prose prose-invert max-w-none prose-headings:text-[#edf1f7] prose-p:text-[#b9c2d0] prose-strong:text-[#edf1f7] prose-li:text-[#b9c2d0] prose-code:text-[#dce2eb]">
+          <div className="markdown-body">
             <ReactMarkdown>
               {content}
             </ReactMarkdown>

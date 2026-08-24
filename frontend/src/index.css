@@ -6,6 +6,250 @@ body,
   min-height: 100%;
 }
 
+html {
+  background: #0b0f17;
+}
+
 body {
   margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(39, 48, 62, 0.28), transparent 34rem),
+    #0b0f17;
+  color: #edf1f7;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(237, 241, 247, 0.18);
+  color: #f0f3f8;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #27303e transparent;
+}
+
+*::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #27303e;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #3a4658;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.markdown-body {
+  color: #b9c2d0;
+  overflow-wrap: anywhere;
+}
+
+.markdown-body > *:first-child {
+  margin-top: 0;
+}
+
+.markdown-body > *:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body p {
+  margin: 0.7rem 0;
+  line-height: 1.75;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+  color: #edf1f7;
+  font-weight: 650;
+  line-height: 1.18;
+  margin: 1.45rem 0 0.7rem;
+}
+
+.markdown-body h1 {
+  font-size: 1.55rem;
+}
+
+.markdown-body h2 {
+  font-size: 1.25rem;
+}
+
+.markdown-body h3 {
+  font-size: 1.05rem;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0.75rem 0;
+  padding-left: 1.35rem;
+}
+
+.markdown-body li {
+  margin: 0.35rem 0;
+  line-height: 1.7;
+}
+
+.markdown-body a {
+  color: #d8e4f5;
+  text-decoration: underline;
+  text-decoration-color: rgba(216, 228, 245, 0.35);
+  text-underline-offset: 3px;
+}
+
+.markdown-body a:hover {
+  color: #ffffff;
+  text-decoration-color: rgba(255, 255, 255, 0.65);
+}
+
+.markdown-body code {
+  border: 1px solid #27303e;
+  border-radius: 0.375rem;
+  background: #0d121b;
+  color: #edf1f7;
+  font-size: 0.88em;
+  padding: 0.13rem 0.35rem;
+}
+
+.markdown-body pre {
+  margin: 1rem 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-wrap: normal;
+  border: 1px solid #202938;
+  border-radius: 0.75rem;
+  background: #0b0f17;
+  padding: 1rem;
+}
+
+.markdown-body pre code {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  white-space: pre;
+}
+
+.markdown-body blockquote {
+  margin: 1rem 0;
+  border-left: 2px solid #465267;
+  color: #d4dbe7;
+  padding-left: 1rem;
+}
+
+.artifact-document {
+  color: #bcc6d5;
+  overflow-wrap: anywhere;
+}
+
+.artifact-document > *:first-child {
+  margin-top: 0;
+}
+
+.artifact-document > *:last-child {
+  margin-bottom: 0;
+}
+
+.artifact-document h1,
+.artifact-document h2,
+.artifact-document h3,
+.artifact-document h4 {
+  color: #f0f3f8;
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.15;
+}
+
+.artifact-document h1 {
+  margin: 0 0 1.4rem;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.artifact-document h2 {
+  margin: 2.75rem 0 1rem;
+  font-size: clamp(1.45rem, 2.5vw, 2rem);
+}
+
+.artifact-document h3 {
+  margin: 2rem 0 0.75rem;
+  font-size: 1.2rem;
+}
+
+.artifact-document p {
+  margin: 1rem 0;
+  font-size: 1rem;
+  line-height: 1.85;
+}
+
+.artifact-document ul,
+.artifact-document ol {
+  margin: 1.1rem 0;
+  padding-left: 1.4rem;
+}
+
+.artifact-document li {
+  margin: 0.45rem 0;
+  line-height: 1.8;
+}
+
+.artifact-document a {
+  color: #e1e8f3;
+  text-decoration: underline;
+  text-decoration-color: rgba(225, 232, 243, 0.35);
+  text-underline-offset: 3px;
+}
+
+.artifact-document blockquote {
+  margin: 1.5rem 0;
+  border-left: 2px solid #465267;
+  color: #d6deea;
+  padding-left: 1.15rem;
+}
+
+.artifact-document code {
+  border: 1px solid #27303e;
+  border-radius: 0.375rem;
+  background: #0d121b;
+  color: #edf1f7;
+  font-size: 0.9em;
+  padding: 0.13rem 0.35rem;
+}
+
+.artifact-document pre {
+  margin: 1.35rem 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-wrap: normal;
+  border: 1px solid #202938;
+  border-radius: 0.85rem;
+  background: #0b0f17;
+  padding: 1rem;
+}
+
+.artifact-document pre code {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  white-space: pre;
 }
