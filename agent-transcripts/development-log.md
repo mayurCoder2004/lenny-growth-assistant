@@ -1857,3 +1857,318 @@ Result:
 
 `PHASE 8 COMPLETE`
 
+
+---
+
+# Phase 9: Artifact Persistence and Retrieval
+
+### 1. Artifact persistence service
+
+Created:
+
+`backend/app/services/artifact_service.py`
+
+The artifact persistence layer was introduced to store generated artifacts in the existing `artifacts` database table.
+
+The service provides:
+
+- Artifact creation
+- Artifact retrieval by ID
+- Input validation
+- Database session validation
+- Persistence error handling
+
+The `create_artifact` service stores:
+
+- Session ID
+- Assistant message ID
+- Artifact type
+- Artifact title
+- Artifact content
+- Creation timestamp
+
+Created:
+
+`ArtifactServiceError`
+
+The service validates:
+
+- Database session presence
+- Session ID
+- Artifact type
+- Artifact title
+- Artifact content
+
+### 2. Artifact service verification
+
+Created:
+
+`backend/scripts/test_artifact_service.py`
+
+Verified:
+
+- Artifact creation
+- Artifact retrieval
+- Empty title rejection
+- Empty content rejection
+- Database session requirement
+
+Result:
+
+`ALL PHASE 9 ARTIFACT SERVICE TESTS PASSED`
+
+### 3. Chat-to-artifact persistence
+
+Updated:
+
+`backend/app/services/chat_service.py`
+
+The chat service was extended so artifact requests now persist the generated artifact after the assistant response is saved.
+
+The flow is:
+
+`ChatService`
+
+-> `AgentDispatcher`
+
+-> `ArtifactAgent`
+
+-> `Ship30SkillService`
+
+-> Generated Ship30 essay
+
+-> Assistant message persistence
+
+-> Artifact persistence
+
+The persisted artifact references the assistant message through:
+
+`message_id`
+
+This keeps the generated artifact connected to the exact assistant response that produced it.
+
+Normal chat requests do not create artifacts.
+
+### 4. Chat artifact persistence verification
+
+Created:
+
+`backend/scripts/test_chat_artifact_persistence.py`
+
+Verified:
+
+- Artifact requests are dispatched correctly
+- Assistant message is captured
+- Artifact references the assistant message
+- Artifact content is persisted
+- Normal chat does not create artifacts
+- Missing sessions are rejected
+
+Result:
+
+`ALL PHASE 9 CHAT ARTIFACT PERSISTENCE TESTS PASSED`
+
+### 5. Artifact response schema
+
+Created:
+
+`backend/app/schemas/artifact.py`
+
+Added:
+
+`ArtifactResponse`
+
+The response schema exposes:
+
+- Artifact ID
+- Session ID
+- Message ID
+- Artifact type
+- Artifact title
+- Artifact content
+- Creation timestamp
+
+### 6. Artifact retrieval API
+
+Created:
+
+`backend/app/api/artifacts.py`
+
+Added:
+
+`GET /artifacts/{artifact_id}`
+
+The endpoint retrieves a persisted artifact by ID.
+
+Successful requests return the complete artifact representation.
+
+Missing artifacts return:
+
+`404 Artifact not found.`
+
+### 7. Application integration
+
+Updated:
+
+`backend/app/main.py`
+
+The artifact router was registered with the FastAPI application.
+
+The API now exposes:
+
+`/artifacts/{artifact_id}`
+
+The application also retains the existing:
+
+- Health endpoint
+- Database health endpoint
+- Session routes
+- Chat routes
+
+### 8. Artifact API verification
+
+Created:
+
+`backend/scripts/test_artifact_api.py`
+
+Verified:
+
+- Persisted artifact retrieval returns HTTP 200
+- Artifact response fields are correct
+- Missing artifact returns HTTP 404
+- Artifact data is correctly serialized through the API
+
+The initial API test exposed a foreign-key requirement because artifacts must belong to an existing session.
+
+The test was corrected to create a real test user and session before creating the artifact.
+
+Final result:
+
+`ALL PHASE 9 ARTIFACT API TESTS PASSED`
+
+### 9. End-to-end artifact persistence
+
+Created:
+
+`backend/scripts/test_phase9_integration.py`
+
+Verified the complete artifact persistence flow:
+
+`ChatService`
+
+-> `AgentDispatcher`
+
+-> `AgentRouter`
+
+-> `ArtifactAgent`
+
+-> `Ship30SkillService`
+
+-> `Ship30Essay`
+
+-> Assistant message
+
+-> Persisted artifact
+
+The Ship30 service generation was mocked only at the LLM/generation boundary so that the application orchestration and database persistence remained real.
+
+Verified:
+
+- Artifact chat generation
+- Ship30 service invocation
+- Artifact database persistence
+- Artifact content
+- Artifact-to-message relationship
+
+Result:
+
+`ALL PHASE 9 END-TO-END TESTS PASSED`
+
+### 10. Phase 9 regression verification
+
+The Phase 9 regression suite was executed after implementing artifact persistence and retrieval.
+
+Verified:
+
+- Artifact service
+- Chat-to-artifact persistence
+- Artifact API
+- End-to-end artifact persistence
+- Python compilation
+
+Executed:
+
+`python -m scripts.test_artifact_service`
+
+`python -m scripts.test_chat_artifact_persistence`
+
+`python -m scripts.test_artifact_api`
+
+`python -m scripts.test_phase9_integration`
+
+`python -m compileall app`
+
+All Phase 9 tests passed successfully.
+
+Final verification included:
+
+`ALL PHASE 9 ARTIFACT SERVICE TESTS PASSED`
+
+`ALL PHASE 9 CHAT ARTIFACT PERSISTENCE TESTS PASSED`
+
+`ALL PHASE 9 ARTIFACT API TESTS PASSED`
+
+`ALL PHASE 9 END-TO-END TESTS PASSED`
+
+Python compilation completed successfully.
+
+### Phase 9 result
+
+The artifact system now persists generated Ship30 essays and provides an API for retrieving them.
+
+The final artifact flow is:
+
+`Chat API`
+
+-> `ChatService`
+
+-> `AgentDispatcher`
+
+-> `AgentRouter`
+
+-> `ArtifactAgent`
+
+-> `Ship30SkillService`
+
+-> Retrieval
+
+-> Grounding
+
+-> `Ship30Skill`
+
+-> `Ship30Essay`
+
+-> Assistant Message
+
+-> `ArtifactService`
+
+-> PostgreSQL `artifacts`
+
+Artifacts can then be retrieved through:
+
+`GET /artifacts/{artifact_id}`
+
+The Phase 9 implementation was committed and pushed successfully.
+
+Git commit:
+
+`9e8f420`
+
+`feat: add artifact persistence and retrieval`
+
+The Phase 9 working tree was clean after the commit and push, with the unrelated untracked `code-review.csv` intentionally excluded from the commit.
+
+Result:
+
+`PHASE 9 COMPLETE`
+
