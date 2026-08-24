@@ -50,6 +50,24 @@ def get_sessions(
     return list(db.scalars(statement).all())
 
 
+def update_session_title(
+    db: Session,
+    session_id: UUID,
+    title: str,
+) -> ChatSession | None:
+    session = db.get(ChatSession, session_id)
+
+    if session is None:
+        return None
+
+    session.title = title.strip()[:255]
+
+    db.commit()
+    db.refresh(session)
+
+    return session
+
+
 def add_message(
     db: Session,
     session_id: UUID,

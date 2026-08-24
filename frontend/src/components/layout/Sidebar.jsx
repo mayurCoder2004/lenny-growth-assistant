@@ -4,6 +4,7 @@ function Sidebar({
   conversations,
   activeConversationId,
   onSelectConversation,
+  onNewConversation,
   loading,
 }) {
   return (
@@ -15,7 +16,9 @@ function Sidebar({
 
         <button
           type="button"
-          className="grid h-[26px] w-[26px] place-items-center rounded-md bg-[#171e29] text-[#aeb8c8] transition hover:bg-[#202938]"
+          onClick={onNewConversation}
+          disabled={loading}
+          className="grid h-[26px] w-[26px] place-items-center rounded-md bg-[#171e29] text-[#aeb8c8] transition hover:bg-[#202938] disabled:cursor-not-allowed disabled:opacity-40"
           aria-label="New conversation"
         >
           +

@@ -10,14 +10,12 @@ import ArtifactViewer from "./components/artifacts/ArtifactViewer";
 import { sendChatMessage } from "./api/chat";
 import { getArtifact } from "./api/artifacts";
 import {
+  createSession,
   getUserSessions,
   getSessionMessages,
 } from "./api/sessions";
 
-import {
-  user,
-} from "./data/mockData";
-
+import { user } from "./data/mockData";
 
 function App() {
   const [conversations, setConversations] = useState([]);
@@ -28,10 +26,10 @@ function App() {
 
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [creatingSession, setCreatingSession] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [error, setError] = useState("");
-
 
   useEffect(() => {
     async function loadSessions() {
@@ -70,9 +68,10 @@ function App() {
     loadSessions();
   }, []);
 
-
   useEffect(() => {
     if (!activeSessionId) {
+      setMessages([]);
+      setArtifact(null);
       return;
     }
 
@@ -80,6 +79,7 @@ function App() {
       try {
         setMessagesLoading(true);
         setError("");
+        setArtifact(null);
 
         const data = await getSessionMessages(
           activeSessionId
@@ -107,18 +107,56 @@ function App() {
     loadMessages();
   }, [activeSessionId]);
 
+  async function handleNewConversation() {
+    if (creatingSession) {
+      return;
+    }
 
-  async function handleSelectConversation(
-    sessionId
-  ) {
+    try {
+      setCreatingSession(true);
+      setError("");
+
+      const newSession = await createSession({
+        userId: user.id,
+        title: "New Chat",
+      });
+
+      const formattedSession = {
+        id: newSession.id,
+        title: newSession.title,
+        time: new Date(
+          newSession.updated_at
+        ).toLocaleDateString(),
+      };
+
+      setConversations((current) => [
+        formattedSession,
+        ...current,
+      ]);
+
+      setActiveSessionId(newSession.id);
+      setMessages([]);
+      setArtifact(null);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to create conversation."
+      );
+    } finally {
+      setCreatingSession(false);
+    }
+  }
+
+  function handleSelectConversation(sessionId) {
     if (sessionId === activeSessionId) {
       return;
     }
 
     setArtifact(null);
+    setMessages([]);
     setActiveSessionId(sessionId);
   }
-
 
   async function handleSend(message) {
     if (!activeSessionId) {
@@ -174,28 +212,29 @@ function App() {
     }
   }
 
-
   return (
     <div className="min-h-screen bg-[#0b0f17] text-[#e8edf5]">
       <TopBar />
 
       <main className="grid min-h-[calc(100vh-72px)] grid-cols-[260px_1fr]">
-
         <Sidebar
           conversations={conversations}
           activeConversationId={activeSessionId}
           onSelectConversation={
             handleSelectConversation
           }
-          loading={sessionsLoading}
+          onNewConversation={
+            handleNewConversation
+          }
+          loading={
+            sessionsLoading ||
+            creatingSession
+          }
         />
 
         <section className="flex min-h-[calc(100vh-72px)] flex-col">
-
           <div className="flex-1 overflow-y-auto px-8 py-8">
-
             <div className="mx-auto max-w-[1000px]">
-
               <div className="mb-8">
                 <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#7e899b]">
                   Growth Assistant
@@ -211,13 +250,11 @@ function App() {
                 </p>
               </div>
 
-
               {messagesLoading && (
                 <div className="mb-5 rounded-lg border border-[#202938] bg-[#10151e] px-4 py-3 text-sm text-[#768195]">
                   Loading conversation...
                 </div>
               )}
-
 
               <div className="flex flex-col gap-4">
                 {messages.map(
@@ -231,7 +268,6 @@ function App() {
                 )}
               </div>
 
-
               {loading && (
                 <div className="mt-4 flex justify-start">
                   <div className="rounded-xl bg-[#10151e] px-4 py-3 text-sm text-[#768195]">
@@ -240,13 +276,11 @@ function App() {
                 </div>
               )}
 
-
               {error && (
                 <div className="mt-5 rounded-lg border border-[#3a2930] bg-[#151018] px-4 py-3 text-sm text-[#c8aeb8]">
                   {error}
                 </div>
               )}
-
 
               {artifact && (
                 <div className="mt-10">
@@ -260,7 +294,6 @@ function App() {
                 </div>
               )}
 
-
               {!artifact &&
                 !loading &&
                 !messagesLoading &&
@@ -271,25 +304,22 @@ function App() {
                     your first artifact.
                   </div>
                 )}
-
             </div>
           </div>
-
 
           <ChatInput
             onSend={handleSend}
             loading={
               loading ||
               sessionsLoading ||
-              messagesLoading
+              messagesLoading ||
+              creatingSession
             }
           />
-
         </section>
       </main>
     </div>
   );
 }
-
 
 export default App;

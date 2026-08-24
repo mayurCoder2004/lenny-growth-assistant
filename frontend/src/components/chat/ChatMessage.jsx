@@ -1,3 +1,5 @@
+import ReactMarkdown from "react-markdown";
+
 function ChatMessage({ role, content }) {
   const isUser = role === "user";
 
@@ -16,7 +18,17 @@ function ChatMessage({ role, content }) {
             : "bg-[#10151e] text-[#b9c2d0]",
         ].join(" ")}
       >
-        {content}
+        {isUser ? (
+          <p className="whitespace-pre-wrap">
+            {content}
+          </p>
+        ) : (
+          <div className="prose prose-invert max-w-none prose-headings:text-[#edf1f7] prose-p:text-[#b9c2d0] prose-strong:text-[#edf1f7] prose-li:text-[#b9c2d0] prose-code:text-[#dce2eb]">
+            <ReactMarkdown>
+              {content}
+            </ReactMarkdown>
+          </div>
+        )}
       </div>
     </div>
   );

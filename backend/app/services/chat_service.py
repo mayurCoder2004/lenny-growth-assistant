@@ -10,11 +10,80 @@ from app.services.artifact_service import (
     ArtifactServiceError,
     create_artifact,
 )
-from app.services.session_service import add_message, get_session
+from app.services.session_service import (
+    add_message,
+    get_messages,
+    get_session,
+    update_session_title,
+)
 
 
 class ChatServiceError(Exception):
     """Raised when the chat service fails."""
+
+
+def generate_session_title(message: str) -> str:
+    """
+    Generate a short human-readable title from the
+    user's first message.
+    """
+
+    cleaned = " ".join(message.strip().split())
+
+    if not cleaned:
+        return "New Chat"
+
+    # Remove common question prefixes.
+    prefixes = (
+        "how can i ",
+        "how do i ",
+        "how to ",
+        "can you ",
+        "could you ",
+        "please ",
+        "i want to ",
+        "i need to ",
+        "help me ",
+        "write ",
+    )
+
+    title = cleaned.lower()
+
+    for prefix in prefixes:
+        if title.startswith(prefix):
+            title = title[len(prefix):]
+            break
+
+    if not title:
+        title = cleaned
+
+    # Clean up trailing punctuation.
+    title = title.rstrip("?.!,:;")
+
+    # Capitalize the first character.
+    title = title[0].upper() + title[1:]
+
+    # Keep common product terms properly capitalized.
+    replacements = {
+        "saas": "SaaS",
+        "ai": "AI",
+        "api": "API",
+        "mvp": "MVP",
+        "ux": "UX",
+        "ui": "UI",
+    }
+
+    words = title.split()
+    title = " ".join(
+        replacements.get(word.lower(), word)
+        for word in words
+    )
+
+    # Keep titles short.
+    if len(title) > 60:
+        title = title[:60].rsplit(" ", 1)[0]
+
+    return title
 
 
 def process_chat(
@@ -66,6 +135,14 @@ def process_chat(
             "Session not found."
         )
 
+    # Check whether this is the first user message.
+    existing_messages = get_messages(
+        db=db,
+        session_id=session_id,
+    )
+
+    is_first_message = len(existing_messages) == 0
+
     # Save user message first.
     add_message(
         db=db,
@@ -73,6 +150,14 @@ def process_chat(
         role="user",
         content=message,
     )
+
+    # Automatically name a newly created conversation.
+    if is_first_message and session.title == "New Chat":
+        update_session_title(
+            db=db,
+            session_id=session_id,
+            title=generate_session_title(message),
+        )
 
     try:
         dispatcher = AgentDispatcher()
