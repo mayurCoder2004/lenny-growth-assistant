@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 
+from app.api.chat import router as chat_router
 from app.api.sessions import router as sessions_router
 from app.database import test_database_connection
 
@@ -40,3 +41,4 @@ def database_health_check():
 
 
 app.include_router(sessions_router)
+app.include_router(chat_router)

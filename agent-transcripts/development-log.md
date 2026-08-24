@@ -761,3 +761,156 @@ Verified:
 - Service-level abstraction
 - Direct provider generation
 - LLM service generation
+---
+
+## Phase 6: Chat API and End-to-End Conversation Flow
+
+### 1. Chat request schema
+
+Created:
+
+`backend/app/schemas/chat.py`
+
+Implemented:
+
+- `ChatRequest`
+- `ChatSource`
+- `ChatResponse`
+
+The request validates the user's message and limits it to
+10,000 characters.
+
+The response returns:
+
+- Generated answer
+- Retrieved transcript sources
+- Guest
+- Episode title
+- URL
+- Retrieval distance
+- Chunk index
+
+### 2. Chat service
+
+Created:
+
+`backend/app/services/chat_service.py`
+
+The chat service connects the conversation layer to the existing RAG
+pipeline.
+
+The flow is:
+
+1. Validate the user message.
+2. Verify that the session exists.
+3. Persist the user's message.
+4. Send the message through the RAG pipeline.
+5. Generate the grounded LLM response.
+6. Persist the assistant response.
+7. Return the answer and transcript sources.
+
+### 3. Chat API
+
+Created:
+
+`backend/app/api/chat.py`
+
+Added:
+
+`POST /sessions/{session_id}/chat`
+
+The endpoint accepts a user message and returns the generated answer
+with its transcript sources.
+
+The endpoint also handles:
+
+- Missing sessions
+- Chat service failures
+- HTTP error responses
+
+### 4. Application integration
+
+Updated:
+
+`backend/app/main.py`
+
+The chat router is now registered with the FastAPI application.
+
+The application now exposes:
+
+- Health endpoint
+- Database health endpoint
+- Session endpoints
+- Message endpoints
+- Chat endpoint
+
+### 5. API verification
+
+Verified:
+
+`GET /health`
+
+Result:
+
+`status: ok`
+
+Verified:
+
+`GET /health/database`
+
+Result:
+
+`database: connected`
+
+Verified demo user:
+
+`demo@lenny.local`
+
+A Phase 6 test session was successfully created.
+
+### 6. End-to-end chat verification
+
+Created:
+
+`backend/scripts/test_chat.py`
+
+The test verifies:
+
+- Demo user lookup
+- Session creation
+- Chat message processing
+- User message persistence
+- RAG retrieval
+- Distance filtering
+- Transcript context construction
+- LLM generation
+- Assistant message persistence
+- Answer generation
+- Source generation
+
+Test question:
+
+`How should I think about leaving my job?`
+
+The complete flow successfully generated an answer and returned five
+transcript sources.
+
+### Phase 6 result
+
+The end-to-end chat flow is working.
+
+Verified:
+
+- Chat request validation
+- Session validation
+- User message persistence
+- RAG integration
+- Grounded LLM generation
+- Assistant message persistence
+- Source metadata
+- Chat API
+- End-to-end conversation flow
+
+Result:
+
+`PHASE 6 CHAT SERVICE TEST: PASSED`
