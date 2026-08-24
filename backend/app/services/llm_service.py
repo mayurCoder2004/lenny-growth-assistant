@@ -106,10 +106,15 @@ def generate_response(
 
     try:
         response = httpx.post(
-            f"{settings.ollama_base_url}/api/generate",
-            json=payload,
-            timeout=120.0,
-        )
+    f"{settings.ollama_base_url}/api/generate",
+    json=payload,
+    timeout=httpx.Timeout(
+        connect=10.0,
+        read=300.0,
+        write=30.0,
+        pool=10.0,
+    ),
+)
 
         response.raise_for_status()
 
