@@ -1,14 +1,19 @@
 from unittest.mock import Mock
 
+from app.agents.artifact_agent import (
+    ArtifactAgent,
+    ArtifactAgentError,
+)
+
 from app.agents.dispatcher import (
     AgentDispatcher,
     AgentDispatcherError,
 )
+
 from app.agents.router import (
     AgentRouter,
     AgentRouterError,
 )
-
 
 def test_router_resolves_artifact():
     agent = Mock()
@@ -90,7 +95,7 @@ def test_artifact_agent_requires_message():
             db=object(),
             message="",
         )
-    except ValueError as exc:
+    except ArtifactAgentError as exc:
         assert "Message cannot be empty" in str(exc)
         print("ARTIFACT EMPTY MESSAGE: PASSED")
         return
@@ -110,7 +115,7 @@ def test_artifact_agent_requires_database():
             db=None,
             message="Create an artifact.",
         )
-    except ValueError as exc:
+    except ArtifactAgentError as exc:
         assert "database session is required" in str(exc)
         print("ARTIFACT DATABASE REQUIREMENT: PASSED")
         return

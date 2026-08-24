@@ -153,6 +153,70 @@ def test_chat_service_dispatches_artifact():
 
     print("CHAT SERVICE ? ARTIFACT DISPATCH: PASSED")
 
+def test_chat_service_dispatches_artifact_essay():
+    db = object()
+    session_id = object()
+
+    with patch(
+        "app.services.chat_service.get_session",
+        return_value=FakeSession(),
+    ), patch(
+        "app.services.chat_service.add_message",
+    ) as add_message_mock, patch(
+        "app.services.chat_service.AgentDispatcher",
+    ) as dispatcher_class:
+
+        dispatcher = dispatcher_class.return_value
+
+        dispatcher.dispatch.return_value = {
+            "agent": "artifact",
+            "answer": "# Improving Onboarding\n\nHelp users experience value quickly.",
+            "plan": None,
+            "sources": [
+                {
+                    "evidence_id": "lauryn-source-21",
+                },
+                {
+                    "evidence_id": "itamar-source-28",
+                },
+            ],
+        }
+
+        result = process_chat(
+            db=db,
+            session_id=session_id,
+            message="Write a Ship30 essay about improving onboarding.",
+            agent="artifact",
+        )
+
+    assert result["answer"].startswith(
+        "# Improving Onboarding"
+    )
+
+    assert result["plan"] is None
+
+    assert result["sources"] == [
+        {
+            "evidence_id": "lauryn-source-21",
+        },
+        {
+            "evidence_id": "itamar-source-28",
+        },
+    ]
+
+    dispatcher.dispatch.assert_called_once_with(
+        db=db,
+        agent_name="artifact",
+        message="Write a Ship30 essay about improving onboarding.",
+        session_id=session_id,
+    )
+
+    assert add_message_mock.call_count == 2
+
+    print(
+        "CHAT SERVICE → ARTIFACT ESSAY DISPATCH: PASSED"
+    )
+
 
 if __name__ == "__main__":
     print("=" * 70)
@@ -162,6 +226,7 @@ if __name__ == "__main__":
     test_chat_service_dispatches_ship30()
     test_chat_service_defaults_to_chat()
     test_chat_service_dispatches_artifact()
+    test_chat_service_dispatches_artifact_essay()
 
     print()
     print("ALL PHASE 7 CHAT SERVICE AGENT INTEGRATION TESTS PASSED")
