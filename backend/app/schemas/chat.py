@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 from app.schemas.ship30 import Ship30Plan
@@ -29,3 +31,4 @@ class ChatResponse(BaseModel):
     answer: str
     sources: list[ChatSource]
     plan: Ship30Plan | None = None
+    artifact_id: UUID | None = None

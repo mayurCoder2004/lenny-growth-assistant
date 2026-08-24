@@ -37,6 +37,19 @@ def get_session(
     return db.get(ChatSession, session_id)
 
 
+def get_sessions(
+    db: Session,
+    user_id: UUID,
+) -> list[ChatSession]:
+    statement = (
+        select(ChatSession)
+        .where(ChatSession.user_id == user_id)
+        .order_by(ChatSession.updated_at.desc())
+    )
+
+    return list(db.scalars(statement).all())
+
+
 def add_message(
     db: Session,
     session_id: UUID,

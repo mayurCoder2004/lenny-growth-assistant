@@ -120,10 +120,13 @@ def process_chat(
         content=answer,
     )
 
+    # Track the generated artifact ID for artifact requests.
+    artifact_id = None
+
     # Persist generated artifacts.
     if agent == "artifact":
         try:
-            create_artifact(
+            artifact = create_artifact(
                 db=db,
                 session_id=session_id,
                 message_id=assistant_message.id,
@@ -131,6 +134,8 @@ def process_chat(
                 title="Ship30 Essay",
                 content=answer,
             )
+
+            artifact_id = artifact.id
 
         except ArtifactServiceError as exc:
             raise ChatServiceError(
@@ -151,4 +156,5 @@ def process_chat(
         "plan": result.get(
             "plan",
         ),
+        "artifact_id": artifact_id,
     }

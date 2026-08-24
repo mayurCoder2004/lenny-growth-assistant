@@ -15,6 +15,7 @@ from app.services.session_service import (
     create_session,
     get_messages,
     get_session,
+    get_sessions,
     get_user,
 )
 
@@ -46,6 +47,28 @@ def create_chat_session(
         db=db,
         user_id=payload.user_id,
         title=payload.title,
+    )
+
+
+@router.get(
+    "/user/{user_id}",
+    response_model=list[SessionResponse],
+)
+def list_user_sessions(
+    user_id: UUID,
+    db: Session = Depends(get_db),
+):
+    user = get_user(db, user_id)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    return get_sessions(
+        db=db,
+        user_id=user_id,
     )
 
 
