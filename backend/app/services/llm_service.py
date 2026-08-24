@@ -1,6 +1,4 @@
-import httpx
-
-from app.config import settings
+from app.llm.factory import get_llm_provider
 
 
 class LLMError(Exception):
@@ -76,65 +74,32 @@ def generate_response(
     system_prompt: str | None = None,
 ) -> str:
     """
-    Generate a response using the configured Ollama LLM.
+    Generate a response using the configured LLM provider.
     """
 
     if not prompt or not prompt.strip():
         raise LLMError("Prompt cannot be empty.")
 
-    if settings.llm_provider.lower() != "ollama":
-        raise LLMError(
-            f"Unsupported LLM provider: {settings.llm_provider}"
-        )
-
-    payload = {
-        "model": settings.ollama_model,
-        "prompt": prompt,
-        "stream": False,
-        "options": {
-            "temperature": 0.1,
-        },
-    }
-
-    # Always provide the grounding system prompt unless the caller
-    # explicitly provides another one.
-    payload["system"] = (
-        system_prompt
-        if system_prompt
-        else SYSTEM_PROMPT
-    )
+    provider = get_llm_provider()
 
     try:
-        response = httpx.post(
-    f"{settings.ollama_base_url}/api/generate",
-    json=payload,
-    timeout=httpx.Timeout(
-        connect=10.0,
-        read=300.0,
-        write=30.0,
-        pool=10.0,
-    ),
-)
-
-        response.raise_for_status()
-
-    except httpx.HTTPError as exc:
-        raise LLMError(
-            f"Failed to communicate with Ollama: {exc}"
-        ) from exc
-
-    try:
-        data = response.json()
-    except ValueError as exc:
-        raise LLMError(
-            "Ollama returned invalid JSON."
-        ) from exc
-
-    generated_text = data.get("response", "").strip()
-
-    if not generated_text:
-        raise LLMError(
-            "Ollama returned an empty response."
+        response = provider.generate(
+            prompt=prompt,
+            system_prompt=(
+                system_prompt
+                if system_prompt
+                else SYSTEM_PROMPT
+            ),
         )
 
-    return generated_text
+    except Exception as exc:
+        raise LLMError(
+            f"Failed to generate response: {exc}"
+        ) from exc
+
+    if not response or not response.strip():
+        raise LLMError(
+            "LLM returned an empty response."
+        )
+
+    return response.strip()

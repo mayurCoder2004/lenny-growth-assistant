@@ -424,3 +424,340 @@ Verified:
 `feat: add transcript ingestion and semantic retrieval`
 
 The Phase 2 implementation was pushed successfully to the GitHub repository.
+---
+
+## Phase 3: Retrieval Quality and Grounded Context
+
+### 1. Retrieval pipeline verification
+
+The semantic retrieval pipeline was tested against the question:
+
+`How should I think about leaving my job?`
+
+The retrieval system successfully returned transcript chunks ranked by vector distance.
+
+The retrieved candidates included:
+
+- Uri Levine 2.0
+- Lauren Ipsen
+- Sriram and Aarthi
+- John Cutler
+- Scott Belsky
+- Ray Cao
+- Sam Schillace
+- Mayur Kamat
+- Eoghan McCabe
+- Alex Hardimen
+- Elena Verna 3.0
+- Ada Chen Rekhi
+- Paul Millerd
+- Bob Moesta
+- Benjamin Mann
+- Bob Moesta 2.0
+- Maggie Crowley
+- Fareed Mosavat
+- Elena Verna
+- Nikhyl Singhal
+
+### 2. Distance filtering
+
+The retrieval pipeline applied the configured distance filtering logic to
+the retrieved candidates.
+
+The resulting candidates were passed forward for context construction.
+
+### 3. Final context selection
+
+The final LLM context was limited to the top five retrieved transcript
+sources:
+
+- Uri Levine 2.0
+- Lauren Ipsen
+- Sriram and Aarthi
+- John Cutler
+- Scott Belsky
+
+### 4. Grounded LLM context
+
+The final context sent to the LLM included:
+
+- Guest name
+- Episode title
+- Transcript excerpt
+- User question
+- Relevant transcript evidence
+
+The LLM was explicitly instructed to determine which retrieved sources
+actually answer the question instead of assuming every retrieved source
+was relevant.
+
+### 5. Grounding behavior
+
+The system prompt was designed to ensure that the LLM:
+
+- Uses only supplied transcript evidence
+- Ignores loosely related sources
+- Does not mention irrelevant guests
+- Does not invent facts or quotations
+- Does not use outside knowledge
+- Synthesizes only directly relevant guest perspectives
+- Returns an insufficient-information response only when none of the
+  supplied excerpts answer the question
+
+### Phase 3 result
+
+Retrieval-to-context construction was successfully verified.
+
+The system can retrieve candidate transcript chunks and construct a
+restricted evidence context for the LLM.
+
+---
+
+## Phase 4: Local LLM Generation with Ollama
+
+### 1. Ollama integration
+
+The project was integrated with a local Ollama instance for LLM generation.
+
+Configured model:
+
+`qwen2.5:1.5b`
+
+Configured endpoint:
+
+`http://localhost:11434`
+
+### 2. Ollama verification
+
+The local model was verified using:
+
+`ollama list`
+
+and:
+
+`ollama ps`
+
+The model successfully loaded and ran locally using CPU processing.
+
+### 3. Direct generation test
+
+The model was tested with:
+
+`ollama run qwen2.5:1.5b`
+
+Test prompt:
+
+`Say hello in one sentence.`
+
+The model successfully generated a response.
+
+### 4. LLM service
+
+Created and verified:
+
+`backend/app/services/llm_service.py`
+
+The service:
+
+- Validates the prompt
+- Uses the configured Ollama provider
+- Sends the grounding system prompt
+- Sends the user/evidence prompt
+- Uses a low temperature of `0.1`
+- Handles HTTP failures
+- Handles invalid JSON
+- Handles empty model responses
+- Uses an extended read timeout for local model generation
+
+### 5. RAG generation verification
+
+The complete retrieval and generation flow was tested with:
+
+`python -m scripts.test_rag`
+
+The pipeline successfully:
+
+1. Retrieved transcript candidates.
+2. Applied distance filtering.
+3. Selected final context sources.
+4. Constructed the evidence-grounded prompt.
+5. Sent the prompt to the local Ollama model.
+6. Generated an answer.
+
+The test successfully produced an answer based on the supplied transcript
+evidence.
+
+### Phase 4 result
+
+Local LLM generation through Ollama was successfully integrated and
+verified as part of the RAG pipeline.
+
+---
+
+## Phase 5: LLM Provider Abstraction
+
+### 1. Provider interface
+
+Created:
+
+`backend/app/llm/base.py`
+
+Implemented the `LLMProvider` abstract interface with:
+
+`generate(prompt, system_prompt=None)`
+
+This establishes a common contract for all LLM providers.
+
+### 2. Ollama provider
+
+Created:
+
+`backend/app/llm/ollama_provider.py`
+
+The existing Ollama generation logic was moved behind the provider
+interface.
+
+The provider handles:
+
+- Prompt validation
+- Ollama model configuration
+- HTTP communication
+- Request timeouts
+- HTTP errors
+- Invalid JSON
+- Empty responses
+
+### 3. Anthropic provider
+
+Created:
+
+`backend/app/llm/anthropic_provider.py`
+
+Implemented an Anthropic provider using the Anthropic Messages API.
+
+The provider supports:
+
+- API key configuration
+- Model configuration
+- System prompts
+- User prompts
+- Response parsing
+- HTTP error handling
+- Empty response handling
+
+The Anthropic provider is implemented but is not currently activated because
+no Anthropic API key is configured.
+
+### 4. Provider factory
+
+Created:
+
+`backend/app/llm/factory.py`
+
+The factory selects the provider using:
+
+`settings.llm_provider`
+
+Supported providers:
+
+- `ollama`
+- `anthropic`
+
+Unsupported providers raise a clear configuration error.
+
+### 5. Configuration
+
+The application configuration was extended with:
+
+- `LLM_PROVIDER`
+- `OLLAMA_BASE_URL`
+- `OLLAMA_MODEL`
+- `ANTHROPIC_API_KEY`
+- `ANTHROPIC_MODEL`
+
+The current environment uses:
+
+`LLM_PROVIDER=ollama`
+
+with:
+
+`OLLAMA_MODEL=qwen2.5:1.5b`
+
+### 6. Service migration
+
+`backend/app/services/llm_service.py` was updated to use the provider
+factory instead of communicating directly with Ollama.
+
+The service now:
+
+1. Validates the prompt.
+2. Obtains the configured provider from the factory.
+3. Sends the system prompt and user prompt through the provider.
+4. Handles provider errors consistently.
+5. Validates the generated response.
+
+This removes provider-specific logic from the application service.
+
+### 7. Factory test
+
+Created:
+
+`backend/scripts/test_llm_factory.py`
+
+The test verified:
+
+- Configured provider: `ollama`
+- Selected provider: `OllamaProvider`
+- Factory selection succeeded
+
+Result:
+
+`Factory test: PASSED`
+
+### 8. Provider generation test
+
+Created:
+
+`backend/scripts/test_llm_provider.py`
+
+The test successfully generated a response through the configured
+`OllamaProvider`.
+
+Result:
+
+`Generation test: PASSED`
+
+### 9. LLM service abstraction test
+
+Created:
+
+`backend/scripts/test_llm_service.py`
+
+The test verified both:
+
+- Direct provider generation
+- Generation through `llm_service.generate_response()`
+
+Both responses were successfully generated.
+
+Result:
+
+`LLM ABSTRACTION TEST: PASSED`
+
+### Phase 5 result
+
+The LLM layer is now provider-independent.
+
+The application can use Ollama today while supporting Anthropic as a
+second provider without changing the higher-level LLM service.
+
+Verified:
+
+- Provider interface
+- Ollama provider
+- Anthropic provider
+- Provider factory
+- Configuration-based provider selection
+- Service-level abstraction
+- Direct provider generation
+- LLM service generation
