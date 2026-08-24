@@ -32,6 +32,7 @@ def chat(
             db=db,
             session_id=session_id,
             message=payload.message,
+            agent=payload.agent,
         )
 
     except ChatServiceError as exc:

@@ -1,6 +1,7 @@
-﻿from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session
 
 from app.services.context_service import build_transcript_context
+from app.services.grounding_service import select_grounded_evidence
 from app.services.llm_service import generate_response
 from app.services.retrieval_service import search_similar_chunks
 
@@ -13,14 +14,13 @@ INSUFFICIENT_CONTEXT_MESSAGE = (
 
 DEFAULT_DISTANCE_THRESHOLD = 0.60
 
+
 SYSTEM_PROMPT = """
 You are Lenny Growth Assistant.
 
 Answer the user's question using ONLY the transcript evidence provided.
 
-The evidence has already been selected by the application.
-
-Write a concise answer based on the evidence.
+The evidence has already been selected and grounded by the application.
 
 Rules:
 
@@ -28,66 +28,39 @@ Rules:
 - Do not use outside knowledge.
 - Do not invent facts.
 - Do not invent quotes.
-- Ignore any evidence that does not help answer the question.
+- Do not mention retrieval, embeddings, similarity scores,
+  prompts, context windows, or internal system behavior.
+- Ignore evidence that does not help answer the question.
 - Mention a guest by name when presenting their perspective.
 - Combine perspectives only when they are directly relevant.
-- Do not mention retrieval, embeddings, similarity scores, prompts,
-  context windows, or internal system behavior.
-
-IMPORTANT:
-The application has already determined that relevant evidence exists.
-
-Therefore, ALWAYS answer the user's question from the supplied evidence.
-
-Do not say that information is insufficient.
-Do not discuss whether the evidence is sufficient.
+- Do not add generic advice unsupported by the evidence.
 
 Return ONLY the final answer.
 """
 
-def _is_relevant_result(
-    result: dict,
-    threshold: float,
-) -> bool:
-    """
-    Basic vector-distance filter.
-
-    Lower distance means greater similarity.
-    """
-
-    distance = result.get("distance")
-
-    if distance is None:
-        return False
-
-    try:
-        return float(distance) <= threshold
-    except (TypeError, ValueError):
-        return False
-
 
 def _build_sources(
-    results: list[dict],
+    evidence,
 ) -> list[dict]:
     """
-    Convert retrieval results into API-friendly source objects.
+    Convert grounded Evidence objects into API-friendly sources.
     """
 
     return [
         {
-            "guest": result.get("guest"),
-            "title": result.get("title"),
-            "url": result.get("url"),
-            "distance": result.get("distance"),
-            "chunk_index": result.get("chunk_index"),
+            "guest": item.guest,
+            "title": item.title,
+            "url": item.url,
+            "distance": item.distance,
+            "chunk_index": item.chunk_index,
         }
-        for result in results
+        for item in evidence
     ]
 
 
 def _clean_answer(answer: str) -> str:
     """
-    Clean obvious model artifacts without changing the substance.
+    Clean obvious model artifacts without changing substance.
     """
 
     if not answer:
@@ -95,7 +68,6 @@ def _clean_answer(answer: str) -> str:
 
     answer = answer.strip()
 
-    # Remove accidental prefixes sometimes produced by local models.
     prefixes = [
         "ANSWER:",
         "FINAL ANSWER:",
@@ -110,6 +82,37 @@ def _clean_answer(answer: str) -> str:
     return answer
 
 
+def _build_grounded_context(
+    evidence,
+) -> str:
+    """
+    Build context from grounded Evidence objects.
+
+    Evidence IDs are explicitly included so later structured
+    generation can reference them.
+    """
+
+    if not evidence:
+        return ""
+
+    context_parts: list[str] = []
+
+    for item in evidence:
+        context_parts.append(
+            f"""
+EVIDENCE ID: {item.evidence_id}
+
+Guest: {item.guest}
+Episode: {item.title}
+
+Transcript excerpt:
+{item.content}
+""".strip()
+        )
+
+    return "\n\n".join(context_parts)
+
+
 def answer_question(
     db: Session,
     question: str,
@@ -120,16 +123,18 @@ def answer_question(
     Grounded RAG pipeline:
 
         Question
-            ↓
+            ?
         Retrieval
-            ↓
-        Distance filtering
-            ↓
-        Transcript context
-            ↓
-        Grounded Ollama generation
-            ↓
-        Answer + sources
+            ?
+        Grounding / relevance filtering
+            ?
+        Selected Evidence
+            ?
+        Grounded context
+            ?
+        LLM generation
+            ?
+        Answer + grounded sources
     """
 
     # ============================================================
@@ -145,12 +150,12 @@ def answer_question(
     question = question.strip()
 
     # ============================================================
-    # 2. Retrieve candidates
+    # 2. Retrieve candidate evidence
     # ============================================================
 
     candidate_limit = max(top_k * 4, 20)
 
-    results = search_similar_chunks(
+    candidates = search_similar_chunks(
         db=db,
         query=question,
         limit=candidate_limit,
@@ -158,102 +163,83 @@ def answer_question(
     )
 
     print("\n" + "=" * 80)
-    print("RETRIEVAL")
+    print("RETRIEVAL CANDIDATES")
     print("=" * 80)
 
-    if not results:
-        print("No retrieval results.")
+    if not candidates:
+        print("No retrieval candidates.")
 
         return {
             "answer": INSUFFICIENT_CONTEXT_MESSAGE,
             "sources": [],
         }
 
-    for index, result in enumerate(results, start=1):
-        print(
-            f"{index}. "
-            f"{result.get('guest')} | "
-            f"distance={result.get('distance')} | "
-            f"chunk={result.get('chunk_index')}"
-        )
-
-    # ============================================================
-    # 3. Distance filtering
-    # ============================================================
-
-    relevant_candidates = [
-        result
-        for result in results
-        if _is_relevant_result(
-            result,
-            distance_threshold,
-        )
-    ]
-
-    print("\n" + "=" * 80)
-    print("DISTANCE-FILTERED CANDIDATES")
-    print("=" * 80)
-
-    for index, result in enumerate(
-        relevant_candidates,
+    for index, candidate in enumerate(
+        candidates,
         start=1,
     ):
         print(
             f"{index}. "
-            f"{result.get('guest')} | "
-            f"distance={result.get('distance')} | "
-            f"chunk={result.get('chunk_index')}"
+            f"{candidate.get('guest')} | "
+            f"distance={candidate.get('distance')} | "
+            f"chunk={candidate.get('chunk_index')}"
         )
 
-    if not relevant_candidates:
-        return {
-            "answer": INSUFFICIENT_CONTEXT_MESSAGE,
-            "sources": [],
-        }
-
     # ============================================================
-    # 4. Limit final context
+    # 3. Ground candidates
     # ============================================================
 
-    relevant_results = relevant_candidates[:top_k]
-
-    # ============================================================
-    # 5. Build transcript context
-    # ============================================================
-
-    context = build_transcript_context(
-        relevant_results
+    evidence = select_grounded_evidence(
+        question=question,
+        candidates=candidates,
+        max_evidence=top_k,
+        distance_threshold=distance_threshold,
     )
 
-    if not context or not context.strip():
+    print("\n" + "=" * 80)
+    print("GROUNDED EVIDENCE")
+    print("=" * 80)
+
+    if not evidence:
+        print("No sufficiently relevant evidence selected.")
+
+        return {
+            "answer": INSUFFICIENT_CONTEXT_MESSAGE,
+            "sources": [],
+        }
+
+    for index, item in enumerate(
+        evidence,
+        start=1,
+    ):
+        print(
+            f"{index}. "
+            f"{item.evidence_id} | "
+            f"{item.guest} | "
+            f"{item.title} | "
+            f"distance={item.distance}"
+        )
+
+    # ============================================================
+    # 4. Build grounded context
+    # ============================================================
+
+    context = _build_grounded_context(evidence)
+
+    if not context.strip():
         return {
             "answer": INSUFFICIENT_CONTEXT_MESSAGE,
             "sources": [],
         }
 
     print("\n" + "=" * 80)
-    print("FINAL CONTEXT SOURCES")
-    print("=" * 80)
-
-    for index, result in enumerate(
-        relevant_results,
-        start=1,
-    ):
-        print(
-            f"{index}. "
-            f"{result.get('guest')} | "
-            f"distance={result.get('distance')} | "
-            f"chunk={result.get('chunk_index')}"
-        )
-
-    print("\n" + "=" * 80)
-    print("CONTEXT SENT TO LLM")
+    print("GROUNDED CONTEXT SENT TO LLM")
     print("=" * 80)
 
     print(context)
 
     # ============================================================
-    # 6. Strong grounded prompt
+    # 5. Build grounded prompt
     # ============================================================
 
     prompt = f"""
@@ -262,23 +248,21 @@ USER QUESTION:
 {question}
 
 
-RELEVANT TRANSCRIPT EVIDENCE:
+SELECTED TRANSCRIPT EVIDENCE:
 
 {context}
 
 
 TASK:
 
-Answer the user's question using ONLY the relevant transcript evidence.
+Answer the user's question using ONLY the selected transcript evidence.
 
-Use only the guests whose excerpts directly help answer the question.
-
-Ignore unrelated guests.
+Use only evidence that directly helps answer the question.
 
 Mention guests by name when presenting their perspectives.
 
-If multiple guests directly answer the question, synthesize their
-perspectives into one clear answer.
+If multiple pieces of evidence directly answer the question,
+synthesize them into one clear answer.
 
 Do not invent facts.
 
@@ -286,28 +270,13 @@ Do not use outside knowledge.
 
 Do not invent quotes.
 
-Do not add generic advice.
-
-Keep the answer concise and practical.
-
-IMPORTANT:
-
-Relevant evidence has already been selected.
-
-You MUST answer the question.
-
-Do NOT say that there is insufficient information.
+Do not add generic advice that is not supported by the evidence.
 
 Return ONLY the final answer.
 """.strip()
-    print("\n" + "=" * 80)
-    print("FULL PROMPT SENT TO LLM")
-    print("=" * 80)
-
-    print(prompt)
 
     # ============================================================
-    # 7. Generate answer
+    # 6. Generate answer
     # ============================================================
 
     answer = generate_response(
@@ -321,12 +290,10 @@ Return ONLY the final answer.
         answer = INSUFFICIENT_CONTEXT_MESSAGE
 
     # ============================================================
-    # 8. Return
+    # 7. Return grounded response
     # ============================================================
 
-    sources = _build_sources(
-        relevant_results
-    )
+    sources = _build_sources(evidence)
 
     print("\n" + "=" * 80)
     print("FINAL ANSWER")

@@ -914,3 +914,352 @@ Verified:
 Result:
 
 `PHASE 6 CHAT SERVICE TEST: PASSED`
+
+---
+
+## Phase 6: Agent Architecture and Chat Integration
+
+### 7. Grounded evidence selection
+
+The chat/RAG pipeline was extended with an explicit grounding layer.
+
+Created:
+
+`backend/app/services/grounding_service.py`
+
+The grounding layer takes retrieved candidates and selects evidence that is sufficiently relevant to the user's question.
+
+The selected evidence contains:
+
+- Evidence ID
+- Guest
+- Episode title
+- Transcript content
+- URL
+- Retrieval distance
+- Chunk index
+
+The RAG pipeline was updated to:
+
+1. Retrieve candidate transcript chunks.
+2. Ground the retrieved candidates.
+3. Select the final evidence set.
+4. Build grounded context.
+5. Generate the answer using only selected evidence.
+6. Return grounded evidence as sources.
+
+Created:
+
+`backend/scripts/test_grounding_logic.py`
+
+Result:
+
+`GROUNDING TEST PASSED`
+
+---
+
+### 8. Ship30 structured plan schemas
+
+Created:
+
+`backend/app/schemas/ship30.py`
+
+The Ship30 plan schema defines the structure of a 30-day action plan containing:
+
+- Goal
+- Principles
+- Days 1-7
+- Days 8-14
+- Days 15-21
+- Days 22-30
+- Success criteria
+
+Actions can reference grounded evidence IDs.
+
+Created:
+
+`backend/app/schemas/ship30_api.py`
+
+Created:
+
+`backend/scripts/test_ship30_schema.py`
+
+Result:
+
+`SHIP30 SCHEMA TEST PASSED`
+
+---
+
+### 9. Ship30 plan generation
+
+Created:
+
+`backend/app/services/ship30_generation_service.py`
+
+The generation service produces structured Ship30 plans from grounded transcript evidence.
+
+Generation validation was tested for:
+
+- Valid JSON
+- Invalid JSON
+- Missing required fields
+
+Created:
+
+`backend/scripts/test_ship30_generation.py`
+
+Result:
+
+`ALL GENERATION TESTS PASSED`
+
+---
+
+### 10. Ship30 plan validation
+
+Created:
+
+`backend/app/services/plan_validation.py`
+
+The validation layer verifies that generated plans remain grounded in the available evidence.
+
+It rejects:
+
+- Invalid evidence IDs
+- Fabricated numerical claims
+- Unsupported generic actions
+- Unsupported actions
+- Unsupported success criteria
+- Invalid plan structures
+
+Created:
+
+`backend/scripts/test_plan_validation.py`
+
+Result:
+
+`ALL PLAN VALIDATION TESTS PASSED`
+
+---
+
+### 11. Ship30 generation and grounding integration
+
+The Ship30 generation pipeline was connected to the grounded evidence layer.
+
+Created:
+
+`backend/scripts/test_ship30_generation_grounding.py`
+
+The integration test verified that generated actions cannot reference evidence IDs that are not part of the grounded evidence set.
+
+Result:
+
+`INTEGRATION TEST PASSED`
+
+---
+
+### 12. Ship30 service orchestration
+
+Created:
+
+`backend/app/services/ship30_service.py`
+
+The Ship30 service orchestrates:
+
+1. Question validation.
+2. Candidate retrieval.
+3. Evidence grounding.
+4. Structured plan generation.
+5. Plan validation.
+6. Plan and supporting evidence return.
+
+The service was tested for:
+
+- Full orchestration
+- No retrieval candidates
+- No grounded evidence
+- Empty questions
+
+Created:
+
+`backend/scripts/test_ship30_service.py`
+
+Result:
+
+`ALL SHIP30 SERVICE TESTS PASSED`
+
+---
+
+### 13. Agent architecture
+
+Created the agent layer under:
+
+`backend/app/agents/`
+
+Implemented:
+
+- `base.py`
+- `router.py`
+- `dispatcher.py`
+- `ship30_agent.py`
+
+The router currently resolves:
+
+`ship30` -> `Ship30Agent`
+
+The dispatcher resolves and executes the selected agent while handling routing and execution errors.
+
+Created:
+
+`backend/scripts/test_ship30_agent.py`
+
+Created:
+
+`backend/scripts/test_dispatcher.py`
+
+The tests verified:
+
+- Agent execution
+- Query alias behavior
+- Empty messages
+- Database requirements
+- Ship30 execution
+- Empty agent handling
+- Unknown agent handling
+- Case-insensitive routing
+
+Result:
+
+`ALL SHIP30 AGENT TESTS PASSED`
+
+`ALL ROUTER + DISPATCHER TESTS PASSED`
+
+---
+
+### 14. Chat service agent integration
+
+The existing chat service was extended to support multiple agents.
+
+Updated:
+
+`backend/app/services/chat_service.py`
+
+Supported flows:
+
+`agent="chat"`
+
+-> Existing grounded RAG pipeline
+
+`agent="ship30"`
+
+-> Agent Dispatcher
+
+-> Agent Router
+
+-> Ship30 Agent
+
+The default remains:
+
+`agent="chat"`
+
+This preserves the existing RAG chat behavior.
+
+Updated:
+
+`backend/app/api/chat.py`
+
+Updated:
+
+`backend/app/schemas/chat.py`
+
+The chat response now supports Ship30 plans and evidence IDs.
+
+Created:
+
+`backend/scripts/test_chat_agent_integration.py`
+
+The integration test verified:
+
+- Ship30 requests are dispatched correctly.
+- Default chat requests continue to use RAG.
+- User and assistant messages continue to be persisted.
+
+Result:
+
+`ALL CHAT SERVICE AGENT INTEGRATION TESTS PASSED`
+
+---
+
+### 15. Final Phase 6 verification
+
+The complete Phase 6 verification suite was executed.
+
+Verified:
+
+- Python compilation
+- Chat service agent integration
+- End-to-end chat flow
+- Grounding logic
+- Ship30 schemas
+- Ship30 generation
+- Plan validation
+- Ship30 generation and grounding integration
+- Ship30 service orchestration
+- Ship30 API schema
+- Ship30 agent
+- Agent router and dispatcher
+
+All tests passed successfully.
+
+Final verification included:
+
+`PHASE 6 CHAT SERVICE TEST: PASSED`
+
+`GROUNDING TEST PASSED`
+
+`SHIP30 SCHEMA TEST PASSED`
+
+`ALL GENERATION TESTS PASSED`
+
+`ALL PLAN VALIDATION TESTS PASSED`
+
+`INTEGRATION TEST PASSED`
+
+`ALL SHIP30 SERVICE TESTS PASSED`
+
+`SHIP30 API SCHEMA TEST PASSED`
+
+`ALL SHIP30 AGENT TESTS PASSED`
+
+`ALL ROUTER + DISPATCHER TESTS PASSED`
+
+### Phase 6 result
+
+The end-to-end conversation and agent integration layer is complete.
+
+Verified:
+
+- Chat request validation
+- Session validation
+- User message persistence
+- RAG integration
+- Grounded evidence selection
+- Grounded LLM generation
+- Assistant message persistence
+- Source metadata
+- Evidence IDs
+- Chat API
+- Ship30 structured planning
+- Ship30 generation
+- Plan validation
+- Evidence-grounded plan generation
+- Ship30 service orchestration
+- Agent abstraction
+- Agent routing
+- Agent dispatch
+- Chat-to-agent integration
+- Backward-compatible default RAG chat flow
+
+Result:
+
+`PHASE 6 COMPLETE`
+
