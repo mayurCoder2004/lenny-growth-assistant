@@ -1393,3 +1393,152 @@ Result:
 
 `PHASE 6 COMPLETE`
 
+
+---
+
+## Phase 7: Agent Routing
+
+### 1. Artifact agent routing
+
+The agent architecture was extended to support the third application agent required by the project plan.
+
+Created:
+
+`backend/app/agents/artifact_agent.py`
+
+The `ArtifactAgent` establishes the application interface for artifact-oriented requests.
+
+At this stage, the agent is intentionally limited to routing and interface validation. Actual artifact generation is deferred to the artifact generation phase.
+
+The agent validates:
+
+- Non-empty messages
+- Required database session
+
+The agent returns the standard agent response structure:
+
+- Agent name
+- Answer
+- Plan
+- Sources
+
+### 2. Agent router extension
+
+Updated:
+
+`backend/app/agents/router.py`
+
+The router now supports:
+
+`chat` -> `ChatAgent`
+
+`ship30` -> `Ship30Agent`
+
+`artifact` -> `ArtifactAgent`
+
+Routing remains case-insensitive and unknown agents continue to produce a clear routing error.
+
+### 3. Chat service artifact integration
+
+Updated:
+
+`backend/scripts/test_chat_agent_integration.py`
+
+The chat integration tests now verify:
+
+- Default chat requests dispatch to `ChatAgent`
+- Ship30 requests dispatch to `Ship30Agent`
+- Artifact requests dispatch to `ArtifactAgent`
+- Plans and sources are preserved
+- User and assistant messages continue to be persisted
+
+### 4. Artifact agent verification
+
+Created:
+
+`backend/scripts/test_artifact_agent.py`
+
+Verified:
+
+- Artifact routing
+- Case-insensitive artifact routing
+- Artifact dispatcher execution
+- Empty message rejection
+- Database requirement
+
+Result:
+
+`ALL PHASE 7 ARTIFACT AGENT TESTS PASSED`
+
+### 5. Phase 7 regression verification
+
+The complete existing backend regression suite was executed after adding artifact routing.
+
+Verified:
+
+- Python compilation
+- Chat service agent integration
+- Artifact agent integration
+- Agent router
+- Agent dispatcher
+- Grounding logic
+- Ship30 schemas
+- Ship30 generation
+- Plan validation
+- Ship30 generation and grounding integration
+- Ship30 service orchestration
+- Ship30 API schema
+- Ship30 agent execution
+
+All tests passed successfully.
+
+Final verification results:
+
+`ALL PHASE 7 CHAT SERVICE AGENT INTEGRATION TESTS PASSED`
+
+`ALL PHASE 7 ARTIFACT AGENT TESTS PASSED`
+
+`ALL ROUTER + DISPATCHER TESTS PASSED`
+
+`GROUNDING TEST PASSED`
+
+`SHIP30 SCHEMA TEST PASSED`
+
+`ALL GENERATION TESTS PASSED`
+
+`ALL PLAN VALIDATION TESTS PASSED`
+
+`INTEGRATION TEST PASSED`
+
+`ALL SHIP30 SERVICE TESTS PASSED`
+
+`SHIP30 API SCHEMA TEST PASSED`
+
+`ALL SHIP30 AGENT TESTS PASSED`
+
+### Phase 7 result
+
+The agent routing layer is complete.
+
+The application agent architecture now supports:
+
+`ChatAgent`
+
+`Ship30Agent`
+
+`ArtifactAgent`
+
+The final routing flow is:
+
+`Chat API`
+-> `ChatService`
+-> `AgentDispatcher`
+-> `AgentRouter`
+-> `ChatAgent` / `Ship30Agent` / `ArtifactAgent`
+
+Artifact generation itself remains intentionally deferred to the artifact generation phase defined in the project plan.
+
+Result:
+
+`PHASE 7 COMPLETE`
+

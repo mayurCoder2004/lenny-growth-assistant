@@ -46,9 +46,7 @@ def test_chat_service_dispatches_ship30():
         )
 
     assert result["answer"] == "Ship30 plan generated."
-
     assert result["plan"] == PLAN
-
     assert result["sources"] == [
         {
             "evidence_id": "source-1-21",
@@ -96,9 +94,7 @@ def test_chat_service_defaults_to_chat():
         )
 
     assert result["answer"] == "Normal chat answer."
-
     assert result["plan"] is None
-
     assert result["sources"] == []
 
     dispatcher.dispatch.assert_called_once_with(
@@ -113,13 +109,59 @@ def test_chat_service_defaults_to_chat():
     print("CHAT DEFAULT ? CHAT AGENT DISPATCH: PASSED")
 
 
+def test_chat_service_dispatches_artifact():
+    db = object()
+    session_id = object()
+
+    with patch(
+        "app.services.chat_service.get_session",
+        return_value=FakeSession(),
+    ), patch(
+        "app.services.chat_service.add_message",
+    ) as add_message_mock, patch(
+        "app.services.chat_service.AgentDispatcher",
+    ) as dispatcher_class:
+
+        dispatcher = dispatcher_class.return_value
+
+        dispatcher.dispatch.return_value = {
+            "agent": "artifact",
+            "answer": "Artifact routing available.",
+            "plan": None,
+            "sources": [],
+        }
+
+        result = process_chat(
+            db=db,
+            session_id=session_id,
+            message="Create a product strategy artifact.",
+            agent="artifact",
+        )
+
+    assert result["answer"] == "Artifact routing available."
+    assert result["plan"] is None
+    assert result["sources"] == []
+
+    dispatcher.dispatch.assert_called_once_with(
+        db=db,
+        agent_name="artifact",
+        message="Create a product strategy artifact.",
+        session_id=session_id,
+    )
+
+    assert add_message_mock.call_count == 2
+
+    print("CHAT SERVICE ? ARTIFACT DISPATCH: PASSED")
+
+
 if __name__ == "__main__":
     print("=" * 70)
-    print("CHAT SERVICE AGENT INTEGRATION TESTS")
+    print("PHASE 7 CHAT SERVICE AGENT INTEGRATION TESTS")
     print("=" * 70)
 
     test_chat_service_dispatches_ship30()
     test_chat_service_defaults_to_chat()
+    test_chat_service_dispatches_artifact()
 
     print()
-    print("ALL CHAT SERVICE AGENT INTEGRATION TESTS PASSED")
+    print("ALL PHASE 7 CHAT SERVICE AGENT INTEGRATION TESTS PASSED")
