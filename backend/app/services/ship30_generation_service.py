@@ -7,7 +7,9 @@ from app.services.plan_validation import validate_ship30_plan
 
 def _build_evidence_context(evidence) -> str:
     """
-    Build explicit evidence context for structured Ship30 generation.
+    Build explicit evidence context using stable integer indexes.
+
+    The LLM sees indexes only. Backend evidence IDs remain internal.
     """
 
     if not evidence:
@@ -15,10 +17,10 @@ def _build_evidence_context(evidence) -> str:
 
     parts: list[str] = []
 
-    for item in evidence:
+    for index, item in enumerate(evidence):
         parts.append(
             f"""
-EVIDENCE ID: {item.evidence_id}
+EVIDENCE INDEX: {index}
 
 Guest: {item.guest}
 Episode: {item.title}
@@ -30,7 +32,6 @@ Transcript:
 
     return "\n\n".join(parts)
 
-
 def _build_prompt(
     question: str,
     evidence,
@@ -38,7 +39,7 @@ def _build_prompt(
     """
     Build a structured-generation prompt.
 
-    The model may only reference evidence IDs supplied here.
+    The model may only reference evidence indexes supplied here.
     """
 
     context = _build_evidence_context(evidence)
@@ -69,7 +70,7 @@ The JSON must have exactly this structure:
     "actions": [
       {{
         "action": "string",
-        "evidence_ids": ["evidence-id"]
+        "evidence_indexes": [0]
       }}
     ]
   }},
@@ -86,11 +87,27 @@ The JSON must have exactly this structure:
 }}
 
 
+CRITICAL ACTION GENERATION RULE:
+
+Before creating an action, compare the action wording directly against
+the selected transcript.
+
+An action is valid ONLY when the transcript explicitly contains the
+idea, behavior, strategy, or recommendation described by the action.
+
+Prefer short actions that reuse the transcript's own terminology.
+
+Do NOT expand, reinterpret, or generalize transcript ideas into new
+activities.
+
+When only one or two actions are directly supported by the evidence,
+create only those actions. It is completely valid for other phases
+to contain no actions.
 CRITICAL GROUNDING RULES:
 
-1. Every action MUST contain at least one evidence_id.
+1. Every action MUST contain at least one evidence_index.
 
-2. Every evidence_id MUST exactly match an EVIDENCE ID supplied above.
+2. Every evidence_index MUST be an integer referring to an EVIDENCE INDEX supplied above.
 
 3. NEVER invent an evidence_id.
 
@@ -151,21 +168,82 @@ def _extract_json(response: str) -> dict:
     return parsed
 
 
+def _resolve_evidence_indexes(
+    payload: dict,
+    evidence,
+) -> dict:
+    """
+    Convert LLM evidence indexes into real backend evidence IDs.
+    """
+
+    normalized = dict(payload)
+
+    evidence_by_index = {
+        index: item.evidence_id
+        for index, item in enumerate(evidence)
+    }
+
+    phases = (
+        "days_1_7",
+        "days_8_14",
+        "days_15_21",
+        "days_22_30",
+    )
+
+    for phase_name in phases:
+        phase = normalized.get(phase_name)
+
+        if not isinstance(phase, dict):
+            continue
+
+        actions = phase.get("actions", [])
+
+        if not isinstance(actions, list):
+            continue
+
+        for action in actions:
+            if not isinstance(action, dict):
+                continue
+
+            indexes = action.pop("evidence_indexes", None)
+
+            if indexes is None:
+                raise ValueError(
+                    f"{phase_name} action is missing evidence_indexes."
+                )
+
+            if not isinstance(indexes, list) or not indexes:
+                raise ValueError(
+                    f"{phase_name} action must contain evidence indexes."
+                )
+
+            resolved_ids = []
+
+            for index in indexes:
+                if isinstance(index, bool) or not isinstance(index, int):
+                    raise ValueError(
+                        f"{phase_name} contains invalid evidence index: {index}"
+                    )
+
+                if index not in evidence_by_index:
+                    raise ValueError(
+                        f"{phase_name} references invalid evidence index: {index}"
+                    )
+
+                resolved_ids.append(
+                    evidence_by_index[index]
+                )
+
+            action["evidence_ids"] = resolved_ids
+
+    return normalized
+
 def generate_ship30_plan(
     question: str,
     evidence,
 ) -> Ship30Plan:
     """
     Generate a structured Ship30 plan from grounded evidence.
-
-    This function performs:
-        Evidence
-            ?
-        Structured LLM generation
-            ?
-        JSON parsing
-            ?
-        Pydantic validation
     """
 
     if not question or not question.strip():
@@ -189,7 +267,23 @@ def generate_ship30_plan(
 
     payload = _extract_json(response)
 
-    plan = Ship30Plan.model_validate(payload)
+    # Normalize simple LLM formatting differences.
+    payload = dict(payload)
+
+    if isinstance(payload.get("success"), str):
+        payload["success"] = [
+            payload["success"]
+        ]
+
+    # Convert LLM evidence indexes into real backend evidence IDs.
+    payload = _resolve_evidence_indexes(
+        payload=payload,
+        evidence=evidence,
+    )
+
+    plan = Ship30Plan.model_validate(
+        payload
+    )
 
     validate_ship30_plan(
         plan=plan,
@@ -197,3 +291,5 @@ def generate_ship30_plan(
     )
 
     return plan
+
+
