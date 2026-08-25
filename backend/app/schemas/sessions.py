@@ -42,10 +42,14 @@ class MessageResponse(BaseModel):
     role: str
     content: str
     sources: list[dict] = Field(default_factory=list)
-    sources: list[dict] = Field(default_factory=list)
     created_at: datetime
 
     model_config = {
         "from_attributes": True,
     }
+
+    model_config = {
+        "from_attributes": True,
+    }
+
 
