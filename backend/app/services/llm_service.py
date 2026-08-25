@@ -103,3 +103,78 @@ def generate_response(
         )
 
     return response.strip()
+
+
+def rewrite_question(
+    question: str,
+    conversation_context: str = "",
+) -> str:
+    """
+    Rewrite a follow-up question into a standalone question
+    suitable for transcript retrieval.
+    """
+
+    question = (question or "").strip()
+
+    if not question:
+        raise LLMError("Question cannot be empty.")
+
+    if not conversation_context.strip():
+        return question
+
+    prompt = f"""
+CONVERSATION:
+
+{conversation_context}
+
+
+CURRENT QUESTION:
+
+{question}
+
+
+TASK:
+
+Rewrite the CURRENT QUESTION as a standalone search question.
+
+Use the conversation only to resolve references such as:
+- "that"
+- "this"
+- "it"
+- "they"
+- "the above"
+- "explain more"
+- "why?"
+- "how?"
+- "what about?"
+
+Preserve the user's actual intent.
+
+Do not answer the question.
+
+Do not add new information.
+
+Return ONLY the rewritten standalone question.
+""".strip()
+
+    try:
+        rewritten = generate_response(
+            prompt=prompt,
+            system_prompt=(
+                "You rewrite follow-up questions into standalone "
+                "questions for transcript retrieval. "
+                "Return only the rewritten question."
+            ),
+        )
+
+    except Exception as exc:
+        raise LLMError(
+            f"Failed to rewrite question: {exc}"
+        ) from exc
+
+    rewritten = rewritten.strip()
+
+    if not rewritten:
+        return question
+
+    return rewritten

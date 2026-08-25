@@ -24,12 +24,14 @@ router = APIRouter(
 )
 def get_artifact_endpoint(
     artifact_id: UUID,
+    session_id: UUID | None = None,
     db: Session = Depends(get_db),
 ):
     try:
         artifact = get_artifact(
             db=db,
             artifact_id=artifact_id,
+            session_id=session_id,
         )
 
         if artifact is None:

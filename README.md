@@ -21,6 +21,72 @@ The app is a React/Vite frontend calling a FastAPI backend. The backend stores s
 
 See [architecture.md](architecture.md) for the detailed system design.
 
+## Quick Start
+
+Prerequisites:
+
+1. Docker Desktop
+2. Ollama
+3. Git
+
+Ollama remains host-side for the local demo. Install Ollama separately, then pull and verify the required local model:
+
+```powershell
+ollama pull qwen2.5:1.5b
+ollama run qwen2.5:1.5b "Reply with exactly: OK"
+```
+
+Start the application:
+
+```powershell
+git clone <repo>
+cd lenny-growth-assistant
+copy .env.example .env
+docker compose up --build
+```
+
+Or on Windows PowerShell from the repository root:
+
+```powershell
+.\scripts\start.ps1
+```
+
+Docker Compose starts:
+
+- PostgreSQL with pgvector on `localhost:5432`
+- FastAPI backend on `http://127.0.0.1:8000`
+- React/Vite frontend on `http://127.0.0.1:5173`
+
+Health checks:
+
+```powershell
+curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/health/database
+```
+
+Inspect logs:
+
+```powershell
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs -f postgres
+```
+
+Stop the system:
+
+```powershell
+docker compose down
+```
+
+Reset the local Docker database:
+
+```powershell
+docker compose down -v
+docker compose up --build
+```
+
+The startup is one Docker Compose command after the required host-side Ollama model is installed.
+
 ## Tech Stack
 
 - Frontend: React 19, Vite, Tailwind CSS 4, `react-markdown`.
@@ -54,7 +120,7 @@ frontend/
 agent-transcripts/
 ```
 
-## Prerequisites
+## Local Prerequisites Without Docker
 
 - Python 3.11+ recommended for the backend dependency set.
 - Node.js and npm for the Vite frontend.
@@ -63,19 +129,26 @@ agent-transcripts/
 - `qwen2.5:1.5b` pulled locally for the default configuration.
 - Optional Anthropic API access if using `LLM_PROVIDER=anthropic`.
 
-No root Docker or deployment configuration is currently present.
-
 ## Environment Setup
 
-Create a root `.env` from `.env.example` and fill in local values. `backend/app/config.py` currently uses `env_file="../.env"`, which resolves to the root `.env` when commands are run from `backend/`. A `backend/.env` file is not read by the current configuration unless the code or working directory is changed.
+Create a root `.env` from `.env.example` and fill in local values. The defaults are set for Docker Compose. For running the backend directly on the host, use a host-reachable database URL and `OLLAMA_BASE_URL=http://localhost:11434`.
 
 ```env
-DATABASE_URL=postgresql://username:password@host/database?sslmode=require
+POSTGRES_DB=lenny_growth_assistant
+POSTGRES_USER=lenny
+POSTGRES_PASSWORD=lenny
+POSTGRES_PORT=5432
+DATABASE_URL=postgresql://lenny:lenny@postgres:5432/lenny_growth_assistant
 LLM_PROVIDER=ollama
-OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+DOCKER_OLLAMA_BASE_URL=http://host.docker.internal:11434
 OLLAMA_MODEL=qwen2.5:1.5b
 ANTHROPIC_API_KEY=
 ANTHROPIC_MODEL=
+BACKEND_PORT=8000
+FRONTEND_PORT=5173
+VITE_API_BASE_URL=http://127.0.0.1:8000
+DEMO_USER_ID=32f8bbc3-60fb-4995-8473-9ff1d14ce88e
 APP_ENV=development
 LOG_LEVEL=INFO
 ```
@@ -91,6 +164,8 @@ ollama run qwen2.5:1.5b
 ```
 
 The default backend provider expects Ollama at `http://localhost:11434`.
+
+Inside Docker Compose, the backend uses `DOCKER_OLLAMA_BASE_URL`, defaulting to `http://host.docker.internal:11434`, so the container can reach the host Ollama service.
 
 ## Backend Setup
 
@@ -166,6 +241,7 @@ npm run dev
 ```
 
 The frontend API clients currently call `http://127.0.0.1:8000`.
+This can be overridden for Vite with `VITE_API_BASE_URL`.
 
 ## Testing
 
@@ -229,9 +305,12 @@ Configuration is defined in `.env.example` and read by `backend/app/config.py`.
 - `DATABASE_URL`: PostgreSQL connection string.
 - `LLM_PROVIDER`: `ollama` or `anthropic`.
 - `OLLAMA_BASE_URL`: local Ollama base URL.
+- `DOCKER_OLLAMA_BASE_URL`: Ollama URL used by the backend container.
 - `OLLAMA_MODEL`: local model name, default `qwen2.5:1.5b`.
 - `ANTHROPIC_API_KEY`: optional cloud provider key.
 - `ANTHROPIC_MODEL`: required when `LLM_PROVIDER=anthropic`.
+- `VITE_API_BASE_URL`: browser-facing backend URL for the frontend.
+- `DEMO_USER_ID`: seeded demo user ID used by the current frontend.
 - `APP_ENV`, `LOG_LEVEL`: documented environment fields; not broadly used by application code.
 
 ## Security Notes

@@ -68,10 +68,19 @@ def create_artifact(
 def get_artifact(
     db: Session,
     artifact_id: UUID,
+    session_id: UUID | None = None,
 ) -> Artifact | None:
     if db is None:
         raise ArtifactServiceError(
             "A database session is required."
         )
 
-    return db.get(Artifact, artifact_id)
+    artifact = db.get(Artifact, artifact_id)
+
+    if artifact is None:
+        return None
+
+    if session_id is not None and artifact.session_id != session_id:
+        return None
+
+    return artifact

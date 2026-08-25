@@ -2,8 +2,12 @@ from sqlalchemy.orm import Session
 
 from app.services.context_service import build_transcript_context
 from app.services.grounding_service import select_grounded_evidence
-from app.services.llm_service import generate_response
+from app.services.llm_service import (
+    generate_response,
+    rewrite_question,
+)
 from app.services.retrieval_service import search_similar_chunks
+from app.logging_config import logger
 
 
 INSUFFICIENT_CONTEXT_MESSAGE = (
@@ -140,7 +144,7 @@ def retrieve_grounded_context(
 
     candidates = search_similar_chunks(
         db=db,
-        query=question,
+        query=retrieval_question,
         limit=candidate_limit,
         candidate_limit=candidate_limit,
     )
@@ -186,6 +190,7 @@ def answer_question(
     question: str,
     top_k: int = 5,
     distance_threshold: float = DEFAULT_DISTANCE_THRESHOLD,
+    conversation_context: str = "",
 ) -> dict:
     """
     Grounded RAG pipeline:
@@ -217,6 +222,12 @@ def answer_question(
 
     question = question.strip()
 
+    # Rewrite follow-up questions into standalone retrieval queries.
+    retrieval_question = rewrite_question(
+        question=question,
+        conversation_context=conversation_context,
+    )
+
     # ============================================================
     # 2. Retrieve candidate evidence
     # ============================================================
@@ -225,7 +236,7 @@ def answer_question(
 
     candidates = search_similar_chunks(
         db=db,
-        query=question,
+        query=retrieval_question,
         limit=candidate_limit,
         candidate_limit=candidate_limit,
     )
@@ -311,7 +322,12 @@ def answer_question(
     # ============================================================
 
     prompt = f"""
-USER QUESTION:
+CONVERSATION CONTEXT:
+
+{conversation_context or "No previous conversation context."}
+
+
+CURRENT USER QUESTION:
 
 {question}
 
@@ -347,6 +363,8 @@ Return ONLY the final answer.
     # 6. Generate answer
     # ============================================================
 
+    logger.info("RAG answer generation started | evidence=%d", len(evidence))
+
     answer = generate_response(
         prompt=prompt,
         system_prompt=SYSTEM_PROMPT,
@@ -363,6 +381,8 @@ Return ONLY the final answer.
 
     sources = _build_sources(evidence)
 
+    logger.info("RAG request completed | evidence=%d | sources=%d", len(evidence), len(sources))
+
     print("\n" + "=" * 80)
     print("FINAL ANSWER")
     print("=" * 80)
@@ -373,3 +393,4 @@ Return ONLY the final answer.
         "answer": answer,
         "sources": sources,
     }
+

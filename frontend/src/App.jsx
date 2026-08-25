@@ -279,6 +279,10 @@ function App() {
         },
       ]);
 
+      if (!response.artifact_id) {
+        setLoading(false);
+      }
+
       if (response.artifact_id) {
         const generatedArtifact =
           await getArtifact(
@@ -461,11 +465,7 @@ function App() {
           <div className="shrink-0">
             <ChatInput
             onSend={handleSend}
-            loading={
-              loading ||
-              sessionsLoading ||
-              messagesLoading
-            }
+            loading={loading}
             agent={agent}
             onAgentChange={setAgent}
           />          </div>
@@ -493,6 +493,8 @@ function App() {
 
 
 export default App;
+
+
 
 
 

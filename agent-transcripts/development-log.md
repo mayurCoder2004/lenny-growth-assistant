@@ -2788,3 +2788,50 @@ Result:
 
 `PHASE 11 COMPLETE`
 
+---
+
+### 12. Conversation-aware grounded follow-ups
+
+The chat pipeline was updated to correctly handle follow-up questions that depend on the previous conversation.
+
+Previously, a follow-up such as:
+
+`Can you explain that more simply?`
+
+could be retrieved as an independent query. This caused unrelated transcript evidence to be selected and produced answers that did not match the previous question.
+
+Implemented:
+
+- Added conversation context to `ChatAgent`
+- Retrieved the previous conversation messages from the current session
+- Added standalone follow-up question rewriting in `llm_service`
+- Follow-up references such as "that", "this", "it", "why?", and "explain more" are resolved using the conversation context
+- Added `rewrite_question()` for retrieval-oriented question rewriting
+- Updated RAG retrieval to use the rewritten standalone question
+- Preserved the conversation context for final grounded answer generation
+- Kept the existing transcript grounding and source filtering behavior
+
+Example verification:
+
+First question:
+
+`What is product-led growth?`
+
+Follow-up:
+
+`Can you explain that more simply?`
+
+The follow-up now correctly remains connected to the product-led growth discussion instead of retrieving unrelated transcript evidence.
+
+Verification:
+
+`docker compose exec backend pytest -q tests`
+
+Result:
+
+`18 passed`
+
+Result:
+
+`CONVERSATION-AWARE FOLLOW-UPS VERIFIED`
+

@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: lenny-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-lenny_growth_assistant}
+      POSTGRES_USER: ${POSTGRES_USER:-lenny}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lenny}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-lenny} -d ${POSTGRES_DB:-lenny_growth_assistant}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+    container_name: lenny-backend
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lenny}:${POSTGRES_PASSWORD:-lenny}@postgres:5432/${POSTGRES_DB:-lenny_growth_assistant}
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      OLLAMA_BASE_URL: ${DOCKER_OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:1.5b}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
+      DEMO_USER_ID: ${DEMO_USER_ID:-32f8bbc3-60fb-4995-8473-9ff1d14ce88e}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: lenny-frontend
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://127.0.0.1:8000}
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+
+volumes:
+  postgres_data:
