@@ -101,8 +101,13 @@ class ArtifactAgent(Agent):
             "plan": None,
             "sources": [
                 {
-                    "evidence_id": evidence_id,
+                    "evidence_id": item.evidence_id,
+                    "source_id": item.source_id,
+                    "guest": item.guest,
+                    "title": item.title,
+                    "url": item.url,
                 }
-                for evidence_id in essay.evidence_ids
+                for item in essay.evidence
             ],
         }
+

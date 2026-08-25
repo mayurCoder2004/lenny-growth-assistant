@@ -15,7 +15,7 @@ class Ship30Essay:
     """Generated Ship30-style essay with its supporting evidence."""
 
     content: str
-    evidence_ids: list[str]
+    evidence: list[Evidence]
 
 
 class Ship30Skill:
@@ -66,10 +66,7 @@ class Ship30Skill:
 
         return Ship30Essay(
             content=essay,
-            evidence_ids=[
-                item.evidence_id
-                for item in evidence
-            ],
+            evidence=evidence,
         )
 
     def _build_prompt(
@@ -181,4 +178,5 @@ and a practical takeaway.
 
 Aim for approximately 700 words.
 """.strip()
+
 
