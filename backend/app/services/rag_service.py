@@ -113,6 +113,74 @@ Transcript excerpt:
     return "\n\n".join(context_parts)
 
 
+
+def retrieve_grounded_context(
+    db: Session,
+    question: str,
+    top_k: int = 5,
+    distance_threshold: float = DEFAULT_DISTANCE_THRESHOLD,
+) -> dict:
+    """
+    Retrieve and ground transcript evidence without generating an answer.
+
+    This separates evidence retrieval from answer generation so that
+    different agent runtimes can consume the same grounded context.
+    """
+
+    if not question or not question.strip():
+        return {
+            "question": "",
+            "context": "",
+            "evidence": [],
+        }
+
+    question = question.strip()
+
+    candidate_limit = max(top_k * 4, 20)
+
+    candidates = search_similar_chunks(
+        db=db,
+        query=question,
+        limit=candidate_limit,
+        candidate_limit=candidate_limit,
+    )
+
+    if not candidates:
+        return {
+            "question": question,
+            "context": "",
+            "evidence": [],
+        }
+
+    evidence = select_grounded_evidence(
+        question=question,
+        candidates=candidates,
+        max_evidence=top_k,
+        distance_threshold=distance_threshold,
+    )
+
+    if not evidence:
+        return {
+            "question": question,
+            "context": "",
+            "evidence": [],
+        }
+
+    context = _build_grounded_context(evidence)
+
+    if not context.strip():
+        return {
+            "question": question,
+            "context": "",
+            "evidence": [],
+        }
+
+    return {
+        "question": question,
+        "context": context,
+        "evidence": evidence,
+    }
+
 def answer_question(
     db: Session,
     question: str,

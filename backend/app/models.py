@@ -121,6 +121,11 @@ class Message(Base):
         nullable=False,
     )
 
+    sources: Mapped[list[dict]] = mapped_column(
+        JSONB,
+        nullable=False,
+        default=list,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -270,3 +275,4 @@ class Artifact(Base):
     session: Mapped["Session"] = relationship(
         back_populates="artifacts",
     )
+

@@ -41,8 +41,11 @@ class MessageResponse(BaseModel):
     session_id: UUID
     role: str
     content: str
+    sources: list[dict] = Field(default_factory=list)
+    sources: list[dict] = Field(default_factory=list)
     created_at: datetime
 
     model_config = {
         "from_attributes": True,
     }
+

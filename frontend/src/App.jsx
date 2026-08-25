@@ -32,6 +32,7 @@ function App() {
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [agent, setAgent] = useState("chat");
 
   const [error, setError] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -116,6 +117,7 @@ function App() {
           data.map((message) => ({
             role: message.role,
             content: message.content,
+            sources: message.sources || [],
           }))
         );
       } catch (err) {
@@ -265,7 +267,7 @@ function App() {
       const response = await sendChatMessage({
         sessionId: activeSessionId,
         message,
-        agent: "artifact",
+        agent,
       });
 
       setMessages((current) => [
@@ -273,6 +275,7 @@ function App() {
         {
           role: "assistant",
           content: response.answer,
+          sources: response.sources || [],
         },
       ]);
 
@@ -398,6 +401,7 @@ function App() {
                       key={`${message.role}-${index}`}
                       role={message.role}
                       content={message.content}
+                      sources={message.sources || []}
                     />
                   )
                 )}
@@ -456,14 +460,15 @@ function App() {
 
           <div className="shrink-0">
             <ChatInput
-              onSend={handleSend}
-              loading={
-                loading ||
-                sessionsLoading ||
-                messagesLoading
-              }
-            />
-          </div>
+            onSend={handleSend}
+            loading={
+              loading ||
+              sessionsLoading ||
+              messagesLoading
+            }
+            agent={agent}
+            onAgentChange={setAgent}
+          />          </div>
 
         </section>
       </main>
@@ -488,3 +493,13 @@ function App() {
 
 
 export default App;
+
+
+
+
+
+
+
+
+
+

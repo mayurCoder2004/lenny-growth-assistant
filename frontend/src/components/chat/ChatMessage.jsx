@@ -1,6 +1,10 @@
 import ReactMarkdown from "react-markdown";
 
-function ChatMessage({ role, content }) {
+function ChatMessage({
+  role,
+  content,
+  sources = [],
+}) {
   const isUser = role === "user";
 
   return (
@@ -23,11 +27,40 @@ function ChatMessage({ role, content }) {
             {content}
           </p>
         ) : (
-          <div className="markdown-body">
-            <ReactMarkdown>
-              {content}
-            </ReactMarkdown>
-          </div>
+          <>
+            <div className="markdown-body">
+              <ReactMarkdown>
+                {content}
+              </ReactMarkdown>
+            </div>
+
+            {sources.length > 0 && (
+              <div className="mt-5 border-t border-[#202938] pt-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#7e899b]">
+                  Sources
+                </p>
+
+                <div className="space-y-2">
+                  {sources.map((source, index) => (
+                    <a
+                      key={
+                        source.evidence_id ||
+                        `${source.url}-${index}`
+                      }
+                      href={source.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-sm text-[#8fa9ff] hover:underline"
+                    >
+                      {source.title ||
+                        source.guest ||
+                        source.url}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

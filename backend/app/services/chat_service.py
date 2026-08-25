@@ -203,6 +203,7 @@ def process_chat(
         session_id=session_id,
         role="assistant",
         content=answer,
+        sources=result.get("sources", []),
     )
 
     # Track the generated artifact ID for artifact requests.
@@ -243,3 +244,4 @@ def process_chat(
         ),
         "artifact_id": artifact_id,
     }
+

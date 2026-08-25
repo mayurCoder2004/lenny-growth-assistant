@@ -73,11 +73,13 @@ def add_message(
     session_id: UUID,
     role: str,
     content: str,
+    sources: list[dict] | None = None,
 ) -> Message:
     message = Message(
         session_id=session_id,
         role=role,
         content=content,
+        sources=sources or [],
     )
 
     db.add(message)
@@ -113,3 +115,4 @@ def get_messages(
     )
 
     return list(db.scalars(statement).all())
+
