@@ -88,7 +88,7 @@ Guest: {item.guest or "Unknown"}
 Episode: {item.title or "Unknown"}
 
 Transcript:
-{item.content}
+{item.content[:3500]}
 """.strip()
             )
 
@@ -130,7 +130,7 @@ SHIP 30 WRITING PRINCIPLES:
 
 8. End with a useful practical takeaway.
 
-9. Aim for approximately 1,250 words.
+9. Aim for approximately 700 words.
 
 10. Every substantive factual claim must be grounded in the
     supplied transcript evidence.
@@ -179,5 +179,6 @@ narrative progression, short paragraphs, useful headings,
 selective emphasis, concrete evidence-supported examples,
 and a practical takeaway.
 
-Aim for approximately 1,250 words.
+Aim for approximately 700 words.
 """.strip()
+
